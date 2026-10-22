@@ -19,11 +19,25 @@ $description = '';
 $meta_title = '';
 $meta_description = '';
 
+// Fetch active server upload limits for display
+$max_upload_size_str = ini_get('upload_max_filesize');
+$max_post_size_str   = ini_get('post_max_size');
+
 function create_slug($string) {
     $slug = strtolower(trim($string));
     $slug = preg_replace('/[^a-z0-9-]/', '-', $slug);
     $slug = preg_replace('/-+/', '-', $slug);
     return trim($slug, '-');
+}
+
+// Helper to convert size string (e.g. 2M, 8M) to bytes
+function parse_size($size) {
+    $unit = preg_replace('/[^bkmgtpezy]/i', '', $size);
+    $size = preg_replace('/[^0-9\.]/', '', $size);
+    if ($unit) {
+        return round($size * pow(1024, stripos('bkmgtpezy', $unit[0])));
+    }
+    return round($size);
 }
 
 // Ensure upload directories exist
@@ -60,7 +74,7 @@ if ($conn) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Check if post_max_size was exceeded (causes $_POST and $_FILES to be empty)
     if (empty($_POST) && empty($_FILES) && isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH'] > 0) {
-        $errors[] = "The uploaded file(s) exceed the maximum allowed server POST size. Please upload smaller image/video files.";
+        $errors[] = "The total post payload exceeded the server's post_max_size limit ({$max_post_size_str}). Please select smaller image/video files.";
     } else {
         $title = trim($_POST['title'] ?? '');
         $category_id = !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null;
@@ -98,29 +112,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Video Upload Handler
         $video_path = null;
-        if (isset($_FILES['product_video']) && $_FILES['product_video']['error'] === UPLOAD_ERR_OK) {
-            $vid_tmp = $_FILES['product_video']['tmp_name'];
-            $vid_name = $_FILES['product_video']['name'];
-            $vid_ext = strtolower(pathinfo($vid_name, PATHINFO_EXTENSION));
-            $allowed_vid_exts = ['mp4', 'mov'];
+        if (isset($_FILES['product_video']) && $_FILES['product_video']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $vid_error = $_FILES['product_video']['error'];
+            if ($vid_error === UPLOAD_ERR_INI_SIZE || $vid_error === UPLOAD_ERR_FORM_SIZE) {
+                $errors[] = "The video file exceeds the maximum allowed upload_max_filesize limit ({$max_upload_size_str}).";
+            } elseif ($vid_error === UPLOAD_ERR_OK) {
+                $vid_tmp = $_FILES['product_video']['tmp_name'];
+                $vid_name = $_FILES['product_video']['name'];
+                $vid_ext = strtolower(pathinfo($vid_name, PATHINFO_EXTENSION));
+                $allowed_vid_exts = ['mp4', 'mov'];
 
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $mime = finfo_file($finfo, $vid_tmp);
-            finfo_close($finfo);
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mime = finfo_file($finfo, $vid_tmp);
+                finfo_close($finfo);
 
-            $allowed_vid_mimes = ['video/mp4', 'video/quicktime'];
+                $allowed_vid_mimes = ['video/mp4', 'video/quicktime'];
 
-            if (in_array($vid_ext, $allowed_vid_exts) && in_array($mime, $allowed_vid_mimes)) {
-                $new_vid_name = 'vid_' . uniqid() . '_' . time() . '.' . $vid_ext;
-                $target_vid_file = $upload_vid_dir . $new_vid_name;
+                if (in_array($vid_ext, $allowed_vid_exts) && in_array($mime, $allowed_vid_mimes)) {
+                    $new_vid_name = 'vid_' . uniqid() . '_' . time() . '.' . $vid_ext;
+                    $target_vid_file = $upload_vid_dir . $new_vid_name;
 
-                if (move_uploaded_file($vid_tmp, $target_vid_file)) {
-                    $video_path = 'uploads/videos/' . $new_vid_name;
+                    if (move_uploaded_file($vid_tmp, $target_vid_file)) {
+                        $video_path = 'uploads/videos/' . $new_vid_name;
+                    } else {
+                        $errors[] = "Failed to move video file.";
+                    }
                 } else {
-                    $errors[] = "Failed to move video file.";
+                    $errors[] = "Invalid video format. Allowed formats: MP4, MOV.";
                 }
             } else {
-                $errors[] = "Invalid video format. Allowed formats: MP4, MOV.";
+                $errors[] = "Video upload failed with code: " . $vid_error;
+            }
+        }
+
+        // Image Upload Errors Check
+        if (isset($_FILES['images']) && !empty($_FILES['images']['name'][0])) {
+            foreach ($_FILES['images']['error'] as $i_idx => $i_err) {
+                if ($i_err === UPLOAD_ERR_INI_SIZE || $i_err === UPLOAD_ERR_FORM_SIZE) {
+                    $errors[] = "Image #" . ($i_idx + 1) . " (" . htmlspecialchars($_FILES['images']['name'][$i_idx]) . ") exceeds server limit ({$max_upload_size_str}).";
+                }
             }
         }
 
@@ -325,13 +355,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="col-md-6">
                 <label for="images" class="form-label fw-bold small">Multi-Image Gallery Upload</label>
                 <input type="file" class="form-control" id="images" name="images[]" multiple accept=".jpg,.jpeg,.png,.webp">
-                <div class="form-text small">First uploaded image becomes primary display.</div>
+                <div class="form-text small">Max file size limit per upload: <strong><?= htmlspecialchars($max_upload_size_str) ?></strong>. First image is primary.</div>
             </div>
 
             <div class="col-md-6">
                 <label for="product_video" class="form-label fw-bold small">Walkthrough Inspection Video (Optional)</label>
                 <input type="file" class="form-control" id="product_video" name="product_video" accept=".mp4,.mov">
-                <div class="form-text small">MP4 or MOV video file.</div>
+                <div class="form-text small">MP4 or MOV video file (Max file size: <strong><?= htmlspecialchars($max_upload_size_str) ?></strong>).</div>
             </div>
 
             <div class="col-12 mt-4"><h3 class="h6 border-bottom pb-2 fw-bold text-uppercase text-muted">SEO Search Engine Metadata</h3></div>
