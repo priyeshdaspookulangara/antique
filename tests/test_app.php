@@ -25,7 +25,19 @@ if (file_exists($schema_file)) {
 }
 
 // 2. Check PHP syntax for all PHP files
-$php_files = ['config/db.php', 'admin/add_product.php', 'product-detail.php', 'sitemap.php'];
+$php_files = [
+    'config/db.php',
+    'admin/add_product.php',
+    'product-detail.php',
+    'sitemap.php',
+    'index.php',
+    'products.php',
+    'about.php',
+    'contact.php',
+    'includes/header.php',
+    'includes/footer.php'
+];
+
 foreach ($php_files as $file) {
     $full_path = $root_dir . '/' . $file;
     if (file_exists($full_path)) {
@@ -53,7 +65,19 @@ if (strpos($xml_output, '<?xml version="1.0" encoding="UTF-8"?>') !== false && s
     echo "[FAIL] sitemap.php XML structure test failed.\n";
 }
 
-// 4. Test SQLite or mock database testing for functional queries
+// 4. Test render HTML pages in separate PHP processes
+$pages_to_test = ['index.php', 'products.php', 'about.php', 'contact.php'];
+foreach ($pages_to_test as $p) {
+    $cmd = "php " . escapeshellarg($root_dir . '/' . $p);
+    $html_out = shell_exec($cmd);
+    if (!empty($html_out) && strpos($html_out, '<!DOCTYPE html>') !== false) {
+        echo "[PASS] Page $p rendered successfully.\n";
+    } else {
+        echo "[FAIL] Page $p failed to render expected HTML.\n";
+    }
+}
+
+// 5. Test SQLite or mock database testing for functional queries
 $db = new PDO('sqlite::memory:');
 $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
