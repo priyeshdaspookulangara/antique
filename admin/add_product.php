@@ -5,6 +5,20 @@ require_once __DIR__ . '/includes/sidebar.php';
 $errors = [];
 $success_message = '';
 
+// Sticky input variables
+$title = '';
+$custom_slug = '';
+$category_id = null;
+$brand_id = null;
+$era_origin = '';
+$condition_grade = 'Excellent Vintage';
+$price = '';
+$stock_status = 'Available';
+$dimensions = '';
+$description = '';
+$meta_title = '';
+$meta_description = '';
+
 function create_slug($string) {
     $slug = strtolower(trim($string));
     $slug = preg_replace('/[^a-z0-9-]/', '-', $slug);
@@ -44,153 +58,169 @@ if ($conn) {
 
 // Handle Form Submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title = trim($_POST['title'] ?? '');
-    $category_id = !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null;
-    $brand_id = !empty($_POST['brand_id']) ? (int)$_POST['brand_id'] : null;
-    $era_origin = trim($_POST['era_origin'] ?? '');
-    $condition_grade = trim($_POST['condition_grade'] ?? 'Excellent Vintage');
-    $price = (float)($_POST['price'] ?? 0.00);
-    $stock_status = trim($_POST['stock_status'] ?? 'Available');
-    $dimensions = trim($_POST['dimensions'] ?? '');
-    $description = trim($_POST['description'] ?? '');
-    $meta_title = trim($_POST['meta_title'] ?? '');
-    $meta_description = trim($_POST['meta_description'] ?? '');
-    $custom_slug = trim($_POST['slug'] ?? '');
+    // Check if post_max_size was exceeded (causes $_POST and $_FILES to be empty)
+    if (empty($_POST) && empty($_FILES) && isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH'] > 0) {
+        $errors[] = "The uploaded file(s) exceed the maximum allowed server POST size. Please upload smaller image/video files.";
+    } else {
+        $title = trim($_POST['title'] ?? '');
+        $category_id = !empty($_POST['category_id']) ? (int)$_POST['category_id'] : null;
+        $brand_id = !empty($_POST['brand_id']) ? (int)$_POST['brand_id'] : null;
+        $era_origin = trim($_POST['era_origin'] ?? '');
+        $condition_grade = trim($_POST['condition_grade'] ?? 'Excellent Vintage');
+        $price = trim($_POST['price'] ?? '');
+        $stock_status = trim($_POST['stock_status'] ?? 'Available');
+        $dimensions = trim($_POST['dimensions'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $meta_title = trim($_POST['meta_title'] ?? '');
+        $meta_description = trim($_POST['meta_description'] ?? '');
+        $custom_slug = trim($_POST['slug'] ?? '');
 
-    if (empty($title)) {
-        $errors[] = "Title is required.";
-    }
-
-    $valid_conditions = ['Museum Quality', 'Excellent Vintage', 'Patina-Rich / Weathered'];
-    if (!in_array($condition_grade, $valid_conditions)) {
-        $condition_grade = 'Excellent Vintage';
-    }
-
-    $valid_stock = ['Available', 'Reserved', 'Sold'];
-    if (!in_array($stock_status, $valid_stock)) {
-        $stock_status = 'Available';
-    }
-
-    $slug = !empty($custom_slug) ? create_slug($custom_slug) : create_slug($title);
-    if (empty($slug)) {
-        $slug = 'artifact-' . time();
-    }
-
-    // Video Upload Handler
-    $video_path = null;
-    if (isset($_FILES['product_video']) && $_FILES['product_video']['error'] === UPLOAD_ERR_OK) {
-        $vid_tmp = $_FILES['product_video']['tmp_name'];
-        $vid_name = $_FILES['product_video']['name'];
-        $vid_ext = strtolower(pathinfo($vid_name, PATHINFO_EXTENSION));
-        $allowed_vid_exts = ['mp4', 'mov'];
-
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mime = finfo_file($finfo, $vid_tmp);
-        finfo_close($finfo);
-
-        $allowed_vid_mimes = ['video/mp4', 'video/quicktime'];
-
-        if (in_array($vid_ext, $allowed_vid_exts) && in_array($mime, $allowed_vid_mimes)) {
-            $new_vid_name = 'vid_' . uniqid() . '_' . time() . '.' . $vid_ext;
-            $target_vid_file = $upload_vid_dir . $new_vid_name;
-
-            if (move_uploaded_file($vid_tmp, $target_vid_file)) {
-                $video_path = 'uploads/videos/' . $new_vid_name;
-            } else {
-                $errors[] = "Failed to move video file.";
-            }
-        } else {
-            $errors[] = "Invalid video format. Allowed: MP4, MOV.";
+        if (empty($title)) {
+            $errors[] = "Title is required. Please type an artifact title into the field.";
         }
-    }
 
-    if (empty($errors)) {
-        if (!$conn) {
-            $errors[] = "Database connection unavailable.";
-        } else {
-            // Unique slug check
-            $slug_check_stmt = mysqli_prepare($conn, "SELECT product_id FROM products WHERE slug = ?");
-            mysqli_stmt_bind_param($slug_check_stmt, "s", $slug);
-            mysqli_stmt_execute($slug_check_stmt);
-            mysqli_stmt_store_result($slug_check_stmt);
-            if (mysqli_stmt_num_rows($slug_check_stmt) > 0) {
-                $slug = $slug . '-' . time();
+        $valid_conditions = ['Museum Quality', 'Excellent Vintage', 'Patina-Rich / Weathered'];
+        if (!in_array($condition_grade, $valid_conditions)) {
+            $condition_grade = 'Excellent Vintage';
+        }
+
+        $valid_stock = ['Available', 'Reserved', 'Sold'];
+        if (!in_array($stock_status, $valid_stock)) {
+            $stock_status = 'Available';
+        }
+
+        $price_num = (float)$price;
+
+        $slug = !empty($custom_slug) ? create_slug($custom_slug) : create_slug($title);
+        if (empty($slug)) {
+            $slug = 'artifact-' . time();
+        }
+
+        // Video Upload Handler
+        $video_path = null;
+        if (isset($_FILES['product_video']) && $_FILES['product_video']['error'] === UPLOAD_ERR_OK) {
+            $vid_tmp = $_FILES['product_video']['tmp_name'];
+            $vid_name = $_FILES['product_video']['name'];
+            $vid_ext = strtolower(pathinfo($vid_name, PATHINFO_EXTENSION));
+            $allowed_vid_exts = ['mp4', 'mov'];
+
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = finfo_file($finfo, $vid_tmp);
+            finfo_close($finfo);
+
+            $allowed_vid_mimes = ['video/mp4', 'video/quicktime'];
+
+            if (in_array($vid_ext, $allowed_vid_exts) && in_array($mime, $allowed_vid_mimes)) {
+                $new_vid_name = 'vid_' . uniqid() . '_' . time() . '.' . $vid_ext;
+                $target_vid_file = $upload_vid_dir . $new_vid_name;
+
+                if (move_uploaded_file($vid_tmp, $target_vid_file)) {
+                    $video_path = 'uploads/videos/' . $new_vid_name;
+                } else {
+                    $errors[] = "Failed to move video file.";
+                }
+            } else {
+                $errors[] = "Invalid video format. Allowed formats: MP4, MOV.";
             }
-            mysqli_stmt_close($slug_check_stmt);
+        }
 
-            $stmt = mysqli_prepare($conn, "INSERT INTO products
-                (category_id, brand_id, title, slug, era_origin, condition_grade, price, stock_status, description, dimensions, video_path, meta_title, meta_description)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        if (empty($errors)) {
+            if (!$conn) {
+                $errors[] = "Database connection unavailable.";
+            } else {
+                // Unique slug check
+                $slug_check_stmt = mysqli_prepare($conn, "SELECT product_id FROM products WHERE slug = ?");
+                mysqli_stmt_bind_param($slug_check_stmt, "s", $slug);
+                mysqli_stmt_execute($slug_check_stmt);
+                mysqli_stmt_store_result($slug_check_stmt);
+                if (mysqli_stmt_num_rows($slug_check_stmt) > 0) {
+                    $slug = $slug . '-' . time();
+                }
+                mysqli_stmt_close($slug_check_stmt);
 
-            if ($stmt) {
-                mysqli_stmt_bind_param(
-                    $stmt,
-                    "iissssdssssss",
-                    $category_id,
-                    $brand_id,
-                    $title,
-                    $slug,
-                    $era_origin,
-                    $condition_grade,
-                    $price,
-                    $stock_status,
-                    $description,
-                    $dimensions,
-                    $video_path,
-                    $meta_title,
-                    $meta_description
-                );
+                // Handle NULL foreign keys safely
+                $cat_sql = ($category_id !== null) ? (int)$category_id : "NULL";
+                $brand_sql = ($brand_id !== null) ? (int)$brand_id : "NULL";
 
-                if (mysqli_stmt_execute($stmt)) {
-                    $product_id = mysqli_insert_id($conn);
-                    mysqli_stmt_close($stmt);
+                $insert_query = "INSERT INTO products
+                    (category_id, brand_id, title, slug, era_origin, condition_grade, price, stock_status, description, dimensions, video_path, meta_title, meta_description)
+                    VALUES ({$cat_sql}, {$brand_sql}, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-                    // Multi-Image Upload Handler
-                    if (isset($_FILES['images']) && !empty($_FILES['images']['name'][0])) {
-                        $allowed_img_exts = ['jpg', 'jpeg', 'png', 'webp'];
-                        $allowed_img_mimes = ['image/jpeg', 'image/png', 'image/webp'];
+                $stmt = mysqli_prepare($conn, $insert_query);
 
-                        $file_count = count($_FILES['images']['name']);
-                        $is_primary = 1;
+                if ($stmt) {
+                    mysqli_stmt_bind_param(
+                        $stmt,
+                        "ssssdssssss",
+                        $title,
+                        $slug,
+                        $era_origin,
+                        $condition_grade,
+                        $price_num,
+                        $stock_status,
+                        $description,
+                        $dimensions,
+                        $video_path,
+                        $meta_title,
+                        $meta_description
+                    );
 
-                        for ($i = 0; $i < $file_count; $i++) {
-                            if ($_FILES['images']['error'][$i] === UPLOAD_ERR_OK) {
-                                $img_tmp = $_FILES['images']['tmp_name'][$i];
-                                $img_name = $_FILES['images']['name'][$i];
-                                $img_ext = strtolower(pathinfo($img_name, PATHINFO_EXTENSION));
+                    if (mysqli_stmt_execute($stmt)) {
+                        $product_id = mysqli_insert_id($conn);
+                        mysqli_stmt_close($stmt);
 
-                                $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                                $mime = finfo_file($finfo, $img_tmp);
-                                finfo_close($finfo);
+                        // Multi-Image Upload Handler
+                        if (isset($_FILES['images']) && !empty($_FILES['images']['name'][0])) {
+                            $allowed_img_exts = ['jpg', 'jpeg', 'png', 'webp'];
+                            $allowed_img_mimes = ['image/jpeg', 'image/png', 'image/webp'];
 
-                                if (in_array($img_ext, $allowed_img_exts) && in_array($mime, $allowed_img_mimes)) {
-                                    $new_img_name = 'prod_' . $product_id . '_' . uniqid() . '_' . $i . '.' . $img_ext;
-                                    $target_img_file = $upload_img_dir . $new_img_name;
+                            $file_count = count($_FILES['images']['name']);
+                            $is_primary = 1;
 
-                                    if (move_uploaded_file($img_tmp, $target_img_file)) {
-                                        $db_img_path = 'uploads/products/' . $new_img_name;
-                                        $sort_order = $i;
+                            for ($i = 0; $i < $file_count; $i++) {
+                                if ($_FILES['images']['error'][$i] === UPLOAD_ERR_OK) {
+                                    $img_tmp = $_FILES['images']['tmp_name'][$i];
+                                    $img_name = $_FILES['images']['name'][$i];
+                                    $img_ext = strtolower(pathinfo($img_name, PATHINFO_EXTENSION));
 
-                                        $img_stmt = mysqli_prepare($conn, "INSERT INTO product_media (product_id, image_path, is_primary, sort_order) VALUES (?, ?, ?, ?)");
-                                        if ($img_stmt) {
-                                            mysqli_stmt_bind_param($img_stmt, "isii", $product_id, $db_img_path, $is_primary, $sort_order);
-                                            mysqli_stmt_execute($img_stmt);
-                                            mysqli_stmt_close($img_stmt);
+                                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                                    $mime = finfo_file($finfo, $img_tmp);
+                                    finfo_close($finfo);
+
+                                    if (in_array($img_ext, $allowed_img_exts) && in_array($mime, $allowed_img_mimes)) {
+                                        $new_img_name = 'prod_' . $product_id . '_' . uniqid() . '_' . $i . '.' . $img_ext;
+                                        $target_img_file = $upload_img_dir . $new_img_name;
+
+                                        if (move_uploaded_file($img_tmp, $target_img_file)) {
+                                            $db_img_path = 'uploads/products/' . $new_img_name;
+                                            $sort_order = $i;
+
+                                            $img_stmt = mysqli_prepare($conn, "INSERT INTO product_media (product_id, image_path, is_primary, sort_order) VALUES (?, ?, ?, ?)");
+                                            if ($img_stmt) {
+                                                mysqli_stmt_bind_param($img_stmt, "isii", $product_id, $db_img_path, $is_primary, $sort_order);
+                                                mysqli_stmt_execute($img_stmt);
+                                                mysqli_stmt_close($img_stmt);
+                                            }
+
+                                            $is_primary = 0;
                                         }
-
-                                        $is_primary = 0;
                                     }
                                 }
                             }
                         }
-                    }
 
-                    $success_message = "1-of-1 Artifact published successfully! Slug: " . htmlspecialchars($slug);
+                        $success_message = "1-of-1 Artifact published successfully! Slug: " . htmlspecialchars($slug);
+                        // Reset sticky inputs on success
+                        $title = $custom_slug = $era_origin = $price = $dimensions = $description = $meta_title = $meta_description = '';
+                        $category_id = $brand_id = null;
+                        $condition_grade = 'Excellent Vintage';
+                        $stock_status = 'Available';
+                    } else {
+                        $errors[] = "Execution error: " . mysqli_error($conn);
+                    }
                 } else {
-                    $errors[] = "Execution error: " . mysqli_error($conn);
+                    $errors[] = "Statement prepare error: " . mysqli_error($conn);
                 }
-            } else {
-                $errors[] = "Statement prepare error: " . mysqli_error($conn);
             }
         }
     }
@@ -222,12 +252,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="col-md-8">
                 <label for="title" class="form-label fw-bold small">Artifact Title *</label>
-                <input type="text" class="form-control" id="title" name="title" required placeholder="e.g. 18th Century Bronze Dynasty Vessel">
+                <input type="text" class="form-control" id="title" name="title" required value="<?= htmlspecialchars($title) ?>" placeholder="e.g. 18th Century Bronze Dynasty Vessel">
             </div>
 
             <div class="col-md-4">
                 <label for="slug" class="form-label fw-bold small">URL Slug (Optional)</label>
-                <input type="text" class="form-control" id="slug" name="slug" placeholder="auto-generated-if-blank">
+                <input type="text" class="form-control" id="slug" name="slug" value="<?= htmlspecialchars($custom_slug) ?>" placeholder="auto-generated-if-blank">
             </div>
 
             <div class="col-md-4">
@@ -235,7 +265,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <select class="form-select" id="category_id" name="category_id">
                     <option value="">-- Select Category --</option>
                     <?php foreach ($categories as $cat): ?>
-                        <option value="<?= $cat['category_id'] ?>"><?= htmlspecialchars($cat['category_name']) ?></option>
+                        <option value="<?= $cat['category_id'] ?>" <?= ($category_id === (int)$cat['category_id']) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($cat['category_name']) ?>
+                        </option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -245,47 +277,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <select class="form-select" id="brand_id" name="brand_id">
                     <option value="">-- Select Brand / Maker --</option>
                     <?php foreach ($brands as $b): ?>
-                        <option value="<?= $b['brand_id'] ?>"><?= htmlspecialchars($b['brand_name']) ?></option>
+                        <option value="<?= $b['brand_id'] ?>" <?= ($brand_id === (int)$b['brand_id']) ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($b['brand_name']) ?>
+                        </option>
                     <?php endforeach; ?>
                 </select>
             </div>
 
             <div class="col-md-4">
                 <label for="era_origin" class="form-label fw-bold small">Era / Origin</label>
-                <input type="text" class="form-control" id="era_origin" name="era_origin" placeholder="e.g. 19th Century, France">
+                <input type="text" class="form-control" id="era_origin" name="era_origin" value="<?= htmlspecialchars($era_origin) ?>" placeholder="e.g. 19th Century, France">
             </div>
 
             <div class="col-md-4">
                 <label for="condition_grade" class="form-label fw-bold small">Condition Grade *</label>
                 <select class="form-select" id="condition_grade" name="condition_grade" required>
-                    <option value="Museum Quality">Museum Quality</option>
-                    <option value="Excellent Vintage" selected>Excellent Vintage</option>
-                    <option value="Patina-Rich / Weathered">Patina-Rich / Weathered</option>
+                    <option value="Museum Quality" <?= ($condition_grade === 'Museum Quality') ? 'selected' : '' ?>>Museum Quality</option>
+                    <option value="Excellent Vintage" <?= ($condition_grade === 'Excellent Vintage') ? 'selected' : '' ?>>Excellent Vintage</option>
+                    <option value="Patina-Rich / Weathered" <?= ($condition_grade === 'Patina-Rich / Weathered') ? 'selected' : '' ?>>Patina-Rich / Weathered</option>
                 </select>
             </div>
 
             <div class="col-md-4">
                 <label for="price" class="form-label fw-bold small">Price ($) *</label>
-                <input type="number" step="0.01" class="form-control" id="price" name="price" required placeholder="0.00">
+                <input type="number" step="0.01" class="form-control" id="price" name="price" required value="<?= htmlspecialchars($price) ?>" placeholder="0.00">
             </div>
 
             <div class="col-md-4">
                 <label for="stock_status" class="form-label fw-bold small">1-of-1 Stock Status *</label>
                 <select class="form-select" id="stock_status" name="stock_status" required>
-                    <option value="Available" selected>Available</option>
-                    <option value="Reserved">Reserved</option>
-                    <option value="Sold">Sold</option>
+                    <option value="Available" <?= ($stock_status === 'Available') ? 'selected' : '' ?>>Available</option>
+                    <option value="Reserved" <?= ($stock_status === 'Reserved') ? 'selected' : '' ?>>Reserved</option>
+                    <option value="Sold" <?= ($stock_status === 'Sold') ? 'selected' : '' ?>>Sold</option>
                 </select>
             </div>
 
             <div class="col-md-12">
                 <label for="dimensions" class="form-label fw-bold small">Dimensions</label>
-                <input type="text" class="form-control" id="dimensions" name="dimensions" placeholder="e.g. 45cm H x 30cm W x 20cm D">
+                <input type="text" class="form-control" id="dimensions" name="dimensions" value="<?= htmlspecialchars($dimensions) ?>" placeholder="e.g. 45cm H x 30cm W x 20cm D">
             </div>
 
             <div class="col-md-12">
                 <label for="description" class="form-label fw-bold small">Description & Provenance</label>
-                <textarea class="form-control" id="description" name="description" rows="4" placeholder="Detailed historical overview..."></textarea>
+                <textarea class="form-control" id="description" name="description" rows="4" placeholder="Detailed historical overview..."><?= htmlspecialchars($description) ?></textarea>
             </div>
 
             <div class="col-md-6">
@@ -304,12 +338,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="col-md-6">
                 <label for="meta_title" class="form-label fw-bold small">SEO Meta Title</label>
-                <input type="text" class="form-control" id="meta_title" name="meta_title" maxlength="160">
+                <input type="text" class="form-control" id="meta_title" name="meta_title" maxlength="160" value="<?= htmlspecialchars($meta_title) ?>">
             </div>
 
             <div class="col-md-6">
                 <label for="meta_description" class="form-label fw-bold small">SEO Meta Description</label>
-                <input type="text" class="form-control" id="meta_description" name="meta_description" maxlength="255">
+                <input type="text" class="form-control" id="meta_description" name="meta_description" maxlength="255" value="<?= htmlspecialchars($meta_description) ?>">
             </div>
 
             <div class="col-12 text-end mt-4">
