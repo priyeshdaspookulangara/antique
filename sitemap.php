@@ -46,7 +46,7 @@ echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
     <!-- Category Pages -->
     <?php foreach ($categories as $cat): ?>
     <url>
-        <loc><?= htmlspecialchars($base_url . '/category/' . urlencode($cat['slug'])) ?></loc>
+        <loc><?= htmlspecialchars($base_url . '/products.php?category=' . urlencode($cat['slug'])) ?></loc>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>

@@ -12,7 +12,7 @@ $schema_file = $root_dir . '/schema.sql';
 if (file_exists($schema_file)) {
     echo "[PASS] schema.sql exists.\n";
     $schema_content = file_get_contents($schema_file);
-    $required_tables = ['categories', 'products', 'product_media', 'orders', 'order_items'];
+    $required_tables = ['users', 'categories', 'brands', 'products', 'product_media', 'orders', 'order_items'];
     foreach ($required_tables as $table) {
         if (strpos($schema_content, "CREATE TABLE $table") !== false || strpos($schema_content, "CREATE TABLE `$table`") !== false) {
             echo "   [PASS] Table $table definition found.\n";
@@ -27,6 +27,16 @@ if (file_exists($schema_file)) {
 // 2. Check PHP syntax for all PHP files
 $php_files = [
     'config/db.php',
+    'config/auth.php',
+    'login.php',
+    'register.php',
+    'logout.php',
+    'admin/dashboard.php',
+    'admin/brands.php',
+    'admin/categories.php',
+    'admin/orders.php',
+    'admin/customers.php',
+    'admin/products.php',
     'admin/add_product.php',
     'product-detail.php',
     'sitemap.php',
@@ -66,7 +76,7 @@ if (strpos($xml_output, '<?xml version="1.0" encoding="UTF-8"?>') !== false && s
 }
 
 // 4. Test render HTML pages in separate PHP processes
-$pages_to_test = ['index.php', 'products.php', 'about.php', 'contact.php'];
+$pages_to_test = ['index.php', 'products.php', 'about.php', 'contact.php', 'login.php', 'register.php'];
 foreach ($pages_to_test as $p) {
     $cmd = "php " . escapeshellarg($root_dir . '/' . $p);
     $html_out = shell_exec($cmd);
@@ -83,6 +93,13 @@ $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 // Create SQLite tables matching schema logic
 $db->exec("
+    CREATE TABLE users (
+        user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        full_name TEXT NOT NULL,
+        email TEXT UNIQUE,
+        password_hash TEXT,
+        role TEXT DEFAULT 'customer'
+    );
     CREATE TABLE categories (
         category_id INTEGER PRIMARY KEY AUTOINCREMENT,
         category_name TEXT NOT NULL,
@@ -90,9 +107,16 @@ $db->exec("
         meta_title TEXT,
         meta_description TEXT
     );
+    CREATE TABLE brands (
+        brand_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        brand_name TEXT NOT NULL,
+        slug TEXT UNIQUE,
+        description TEXT
+    );
     CREATE TABLE products (
         product_id INTEGER PRIMARY KEY AUTOINCREMENT,
         category_id INTEGER,
+        brand_id INTEGER,
         title TEXT NOT NULL,
         slug TEXT UNIQUE,
         era_origin TEXT,
@@ -115,13 +139,17 @@ $db->exec("
     );
 ");
 
-// Insert mock category & product
+// Insert mock user, category, brand & product
+$db->exec("INSERT INTO users (full_name, email, password_hash, role) VALUES ('Admin User', 'admin@domain.com', 'hash', 'admin')");
 $db->exec("INSERT INTO categories (category_name, slug, meta_title, meta_description) VALUES ('Renaissance Bronze', 'renaissance-bronze', 'Renaissance Bronze Antiques', 'Authentic 16th century bronze artifacts.')");
 $cat_id = $db->lastInsertId();
+$db->exec("INSERT INTO brands (brand_name, slug, description) VALUES ('Florentine Guild', 'florentine-guild', 'Italian bronze masters')");
+$brand_id = $db->lastInsertId();
 
-$stmt = $db->prepare("INSERT INTO products (category_id, title, slug, era_origin, condition_grade, price, stock_status, description, dimensions, video_path, meta_title, meta_description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+$stmt = $db->prepare("INSERT INTO products (category_id, brand_id, title, slug, era_origin, condition_grade, price, stock_status, description, dimensions, video_path, meta_title, meta_description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 $stmt->execute([
     $cat_id,
+    $brand_id,
     '16th Century Florentine Bronze Statue',
     '16th-century-florentine-bronze-statue',
     '16th Century, Italy',

@@ -2,13 +2,14 @@
 require_once __DIR__ . '/config/db.php';
 
 $page_title = "Artifact Catalog | 1-of-1 Antique Collection";
-$page_desc = "Browse complete index of unique 1-of-1 historical artifacts with advanced filters, category browsing, and price sorting.";
+$page_desc = "Browse complete index of unique 1-of-1 historical artifacts with advanced filters, category browsing, brand filtering, and price sorting.";
 
 require_once __DIR__ . '/includes/header.php';
 
 // Filter & Pagination Parameters
 $search_query   = trim($_GET['q'] ?? '');
 $cat_slug       = trim($_GET['category'] ?? '');
+$brand_slug     = trim($_GET['brand'] ?? '');
 $status_filter  = trim($_GET['status'] ?? '');
 $condition_f    = trim($_GET['condition'] ?? '');
 $min_price      = isset($_GET['min_price']) && $_GET['min_price'] !== '' ? (float)$_GET['min_price'] : null;
@@ -36,6 +37,12 @@ if (!empty($search_query)) {
 if (!empty($cat_slug)) {
     $where_clauses[] = "c.slug = ?";
     $params[] = $cat_slug;
+    $param_types .= "s";
+}
+
+if (!empty($brand_slug)) {
+    $where_clauses[] = "b.slug = ?";
+    $params[] = $brand_slug;
     $param_types .= "s";
 }
 
@@ -85,13 +92,21 @@ switch ($sort_by) {
         break;
 }
 
-// Fetch categories for sidebar filter
+// Fetch categories & brands for sidebar filter
 $categories = [];
+$brands = [];
 if ($conn) {
     $cat_res = mysqli_query($conn, "SELECT category_id, category_name, slug FROM categories ORDER BY category_name ASC");
     if ($cat_res) {
         while ($row = mysqli_fetch_assoc($cat_res)) {
             $categories[] = $row;
+        }
+    }
+
+    $brand_res = mysqli_query($conn, "SELECT brand_id, brand_name, slug FROM brands ORDER BY brand_name ASC");
+    if ($brand_res) {
+        while ($row = mysqli_fetch_assoc($brand_res)) {
+            $brands[] = $row;
         }
     }
 }
@@ -103,6 +118,7 @@ if ($conn) {
         SELECT COUNT(*) as total
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.category_id
+        LEFT JOIN brands b ON p.brand_id = b.brand_id
         {$where_sql}
     ";
 
@@ -126,10 +142,11 @@ $total_pages = ceil($total_products / $per_page);
 $products = [];
 if ($conn) {
     $query = "
-        SELECT p.*, c.category_name, c.slug as category_slug,
+        SELECT p.*, c.category_name, c.slug as category_slug, b.brand_name,
                (SELECT image_path FROM product_media pm WHERE pm.product_id = p.product_id ORDER BY is_primary DESC, media_id ASC LIMIT 1) as primary_image
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.category_id
+        LEFT JOIN brands b ON p.brand_id = b.brand_id
         {$where_sql}
         {$order_sql}
         LIMIT ? OFFSET ?
@@ -166,13 +183,14 @@ function build_filter_url($override_params = []) {
     <div class="row align-items-center mb-4">
         <div class="col-md-6">
             <h1 class="h3 header-brand mb-1">Artifact Catalog</h1>
-            <p class="text-muted small mb-0">Discover authentic 1-of-1 historical relics and museum-grade masterworks.</p>
+            <p class="text-muted small mb-0">Discover authentic 1-of-1 historical relics, makers, and museum-grade masterworks.</p>
         </div>
         <div class="col-md-6">
             <form action="products.php" method="GET" class="d-flex gap-2">
                 <?php if (!empty($cat_slug)): ?><input type="hidden" name="category" value="<?= htmlspecialchars($cat_slug) ?>"><?php endif; ?>
+                <?php if (!empty($brand_slug)): ?><input type="hidden" name="brand" value="<?= htmlspecialchars($brand_slug) ?>"><?php endif; ?>
                 <?php if (!empty($status_filter)): ?><input type="hidden" name="status" value="<?= htmlspecialchars($status_filter) ?>"><?php endif; ?>
-                <input type="text" name="q" class="form-control" placeholder="Search by title, era, or description..." value="<?= htmlspecialchars($search_query) ?>">
+                <input type="text" name="q" class="form-control" placeholder="Search title, era, maker..." value="<?= htmlspecialchars($search_query) ?>">
                 <button type="submit" class="btn btn-dark px-4">Search</button>
             </form>
         </div>
@@ -199,6 +217,19 @@ function build_filter_url($override_params = []) {
                             <?php foreach ($categories as $cat): ?>
                                 <option value="<?= htmlspecialchars($cat['slug']) ?>" <?= ($cat_slug === $cat['slug']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($cat['category_name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <!-- Brand / Maker Guild Filter -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-uppercase small text-muted">Brand / Guild</label>
+                        <select name="brand" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="">All Brands / Makers</option>
+                            <?php foreach ($brands as $b): ?>
+                                <option value="<?= htmlspecialchars($b['slug']) ?>" <?= ($brand_slug === $b['slug']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($b['brand_name']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -265,7 +296,7 @@ function build_filter_url($override_params = []) {
                     Showing <strong><?= count($products) ?></strong> of <strong><?= $total_products ?></strong> artifact(s)
                 </span>
 
-                <?php if (!empty($search_query) || !empty($cat_slug) || !empty($status_filter) || !empty($condition_f) || $min_price !== null || $max_price !== null): ?>
+                <?php if (!empty($search_query) || !empty($cat_slug) || !empty($brand_slug) || !empty($status_filter) || !empty($condition_f) || $min_price !== null || $max_price !== null): ?>
                     <span class="badge bg-light text-dark border">Filters Applied</span>
                 <?php endif; ?>
             </div>
@@ -300,6 +331,10 @@ function build_filter_url($override_params = []) {
                                         </a>
                                     </h2>
 
+                                    <?php if (!empty($item['brand_name'])): ?>
+                                        <p class="text-muted small mb-1"><strong>Maker:</strong> <?= htmlspecialchars($item['brand_name']) ?></p>
+                                    <?php endif; ?>
+
                                     <?php if (!empty($item['era_origin'])): ?>
                                         <p class="text-muted small mb-2"><strong>Era:</strong> <?= htmlspecialchars($item['era_origin']) ?></p>
                                     <?php endif; ?>
@@ -320,7 +355,7 @@ function build_filter_url($override_params = []) {
                         <ul class="pagination justify-content-center">
                             <!-- Previous Page -->
                             <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
-                                <a class="page-item page-link text-dark" href="<?= build_filter_url(['page' => $page - 1]) ?>">Previous</a>
+                                <a class="page-link text-dark" href="<?= build_filter_url(['page' => $page - 1]) ?>">Previous</a>
                             </li>
 
                             <!-- Page Numbers -->

@@ -12,18 +12,20 @@ $media_items = [];
 if ($conn && (!empty($slug) || $product_id > 0)) {
     if (!empty($slug)) {
         $stmt = mysqli_prepare($conn, "
-            SELECT p.*, c.category_name, c.slug as category_slug
+            SELECT p.*, c.category_name, c.slug as category_slug, b.brand_name
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.category_id
+            LEFT JOIN brands b ON p.brand_id = b.brand_id
             WHERE p.slug = ?
             LIMIT 1
         ");
         mysqli_stmt_bind_param($stmt, "s", $slug);
     } else {
         $stmt = mysqli_prepare($conn, "
-            SELECT p.*, c.category_name, c.slug as category_slug
+            SELECT p.*, c.category_name, c.slug as category_slug, b.brand_name
             FROM products p
             LEFT JOIN categories c ON p.category_id = c.category_id
+            LEFT JOIN brands b ON p.brand_id = b.brand_id
             WHERE p.product_id = ?
             LIMIT 1
         ");
@@ -129,7 +131,10 @@ $og_image_url = (strpos($primary_image, 'http') === 0) ? $primary_image : $proto
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3">
     <div class="container">
         <a class="navbar-brand header-brand text-uppercase" href="index.php">🏛️ Museum Artifact Collection</a>
-        <a href="admin/add_product.php" class="btn btn-outline-warning btn-sm">Admin Panel</a>
+        <div class="d-flex gap-2">
+            <a href="products.php" class="btn btn-outline-light btn-sm">Catalog</a>
+            <a href="admin/dashboard.php" class="btn btn-outline-warning btn-sm">Admin Panel</a>
+        </div>
     </div>
 </nav>
 
@@ -149,7 +154,7 @@ $og_image_url = (strpos($primary_image, 'http') === 0) ? $primary_image : $proto
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="index.php" class="text-decoration-none text-muted">Home</a></li>
                 <?php if (!empty($product['category_name'])): ?>
-                    <li class="breadcrumb-item"><a href="sitemap.php" class="text-decoration-none text-muted"><?= htmlspecialchars($product['category_name']) ?></a></li>
+                    <li class="breadcrumb-item"><a href="products.php?category=<?= urlencode($product['category_slug']) ?>" class="text-decoration-none text-muted"><?= htmlspecialchars($product['category_name']) ?></a></li>
                 <?php endif; ?>
                 <li class="breadcrumb-item active" aria-current="page"><?= htmlspecialchars($product['title']) ?></li>
             </ol>
@@ -181,12 +186,15 @@ $og_image_url = (strpos($primary_image, 'http') === 0) ? $primary_image : $proto
                 <?php endif; ?>
 
                 <!-- 360 Walkthrough / Inspection Video Player -->
-                <?php if (!empty($product['video_path']) && file_exists(__DIR__ . '/' . $product['video_path'])): ?>
+                <?php if (!empty($product['video_path']) && file_exists(__DIR__ . '/' . $product['video_path'])):
+                    $vid_ext = strtolower(pathinfo($product['video_path'], PATHINFO_EXTENSION));
+                    $vid_mime = ($vid_ext === 'mov') ? 'video/quicktime' : 'video/mp4';
+                ?>
                     <div class="mt-4 p-3 bg-white border rounded shadow-sm">
                         <h3 class="h6 fw-bold text-uppercase mb-3">🎥 Artifact 360° Walkthrough & Detail Video</h3>
                         <div class="ratio ratio-16x9">
                             <video controls class="rounded">
-                                <source src="<?= htmlspecialchars($product['video_path']) ?>" type="video/mp4">
+                                <source src="<?= htmlspecialchars($product['video_path']) ?>" type="<?= $vid_mime ?>">
                                 Your browser does not support HTML5 video inspection.
                             </video>
                         </div>
@@ -219,6 +227,10 @@ $og_image_url = (strpos($primary_image, 'http') === 0) ? $primary_image : $proto
                     </div>
 
                     <h1 class="h2 fw-bold text-dark mb-2"><?= htmlspecialchars($product['title']) ?></h1>
+
+                    <?php if (!empty($product['brand_name'])): ?>
+                        <p class="text-secondary fs-6 mb-1"><strong>Maker / Guild:</strong> <?= htmlspecialchars($product['brand_name']) ?></p>
+                    <?php endif; ?>
 
                     <?php if (!empty($product['era_origin'])): ?>
                         <p class="text-muted fs-6 mb-3"><strong>Origin / Era:</strong> <?= htmlspecialchars($product['era_origin']) ?></p>
