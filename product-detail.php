@@ -110,7 +110,6 @@ require_once __DIR__ . '/includes/header.php';
             <div class="col-lg-6">
                 <div class="frame mb-3">
                     <div class="panel">
-                        <div class="relic">ॐ</div>
                         <?php if (!empty($media_items)): ?>
                             <img id="primaryGalleryImage" src="<?= htmlspecialchars($media_items[0]['image_path']) ?>" alt="<?= htmlspecialchars($product['title']) ?>">
                         <?php endif; ?>

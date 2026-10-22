@@ -168,7 +168,6 @@ function build_filter_url($override_params = []) {
 }
 
 $panel_classes = ['', 'wine', 'pink'];
-$relic_symbols = ['ॐ', '❁', '✦', '♨', '❖', '☸', '❀', '✺'];
 ?>
 
 <div class="wrap my-5">
@@ -268,12 +267,10 @@ $relic_symbols = ['ॐ', '❁', '✦', '♨', '❖', '☸', '❀', '✺'];
                     <?php foreach ($products as $idx => $prod): ?>
                         <?php
                             $p_class = $panel_classes[$idx % count($panel_classes)];
-                            $symbol = $relic_symbols[$idx % count($relic_symbols)];
                         ?>
                         <article class="card-item">
                             <a href="product-detail.php?slug=<?= urlencode($prod['slug']) ?>" class="frame">
                                 <div class="panel <?= $p_class ?>">
-                                    <div class="relic"><?= $symbol ?></div>
                                     <?php if (!empty($prod['primary_image'])): ?>
                                         <img src="<?= htmlspecialchars($prod['primary_image']) ?>" alt="<?= htmlspecialchars($prod['title']) ?>" loading="lazy" onerror="this.remove()">
                                     <?php endif; ?>

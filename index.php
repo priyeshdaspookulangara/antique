@@ -42,7 +42,6 @@ if ($conn) {
 
 // Panel style classes array to cycle velvet backgrounds if no image
 $panel_classes = ['', 'wine', 'pink'];
-$relic_symbols = ['ॐ', '❁', '✦', '♨', '❖', '☸', '❀', '✺'];
 ?>
 
 <main>
@@ -61,7 +60,6 @@ $relic_symbols = ['ॐ', '❁', '✦', '♨', '❖', '☸', '❀', '✺'];
         </div>
         <div class="frame d-none d-lg-block" aria-hidden="true">
             <div class="panel">
-                <div class="relic">ॐ</div>
             </div>
         </div>
       </div>
@@ -157,12 +155,10 @@ $relic_symbols = ['ॐ', '❁', '✦', '♨', '❖', '☸', '❀', '✺'];
         <?php foreach ($products as $idx => $prod): ?>
           <?php
             $p_class = $panel_classes[$idx % count($panel_classes)];
-            $symbol = $relic_symbols[$idx % count($relic_symbols)];
           ?>
           <article class="card-item">
             <a href="product-detail.php?slug=<?= urlencode($prod['slug']) ?>" class="frame">
               <div class="panel <?= $p_class ?>">
-                <div class="relic"><?= $symbol ?></div>
                 <?php if (!empty($prod['primary_image'])): ?>
                   <img src="<?= htmlspecialchars($prod['primary_image']) ?>" alt="<?= htmlspecialchars($prod['title']) ?>" loading="lazy" onerror="this.remove()">
                 <?php endif; ?>
@@ -234,8 +230,8 @@ $relic_symbols = ['ॐ', '❁', '✦', '♨', '❖', '☸', '❀', '✺'];
       <a href="products.php" class="btn-brass text-decoration-none">Browse wall sets</a>
     </div>
     <div class="pair">
-      <div class="frame"><div class="panel wine"><div class="relic">ॐ</div></div></div>
-      <div class="frame"><div class="panel pink"><div class="relic">✦</div></div></div>
+      <div class="frame"><div class="panel wine"></div></div>
+      <div class="frame"><div class="panel pink"></div></div>
     </div>
   </div>
 </section>
