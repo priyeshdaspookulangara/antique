@@ -14,6 +14,7 @@ $era_origin = '';
 $condition_grade = 'Excellent Vintage';
 $price = '';
 $stock_status = 'Available';
+$is_featured = 0;
 $dimensions = '';
 $description = '';
 $meta_title = '';
@@ -28,16 +29,6 @@ function create_slug($string) {
     $slug = preg_replace('/[^a-z0-9-]/', '-', $slug);
     $slug = preg_replace('/-+/', '-', $slug);
     return trim($slug, '-');
-}
-
-// Helper to convert size string (e.g. 2M, 8M) to bytes
-function parse_size($size) {
-    $unit = preg_replace('/[^bkmgtpezy]/i', '', $size);
-    $size = preg_replace('/[^0-9\.]/', '', $size);
-    if ($unit) {
-        return round($size * pow(1024, stripos('bkmgtpezy', $unit[0])));
-    }
-    return round($size);
 }
 
 // Ensure upload directories exist
@@ -72,7 +63,6 @@ if ($conn) {
 
 // Handle Form Submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Check if post_max_size was exceeded (causes $_POST and $_FILES to be empty)
     if (empty($_POST) && empty($_FILES) && isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH'] > 0) {
         $errors[] = "The total post payload exceeded the server's post_max_size limit ({$max_post_size_str}). Please select smaller image/video files.";
     } else {
@@ -83,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $condition_grade = trim($_POST['condition_grade'] ?? 'Excellent Vintage');
         $price = trim($_POST['price'] ?? '');
         $stock_status = trim($_POST['stock_status'] ?? 'Available');
+        $is_featured = isset($_POST['is_featured']) ? 1 : 0;
         $dimensions = trim($_POST['dimensions'] ?? '');
         $description = trim($_POST['description'] ?? '');
         $meta_title = trim($_POST['meta_title'] ?? '');
@@ -173,21 +164,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $brand_sql = ($brand_id !== null) ? (int)$brand_id : "NULL";
 
                 $insert_query = "INSERT INTO products
-                    (category_id, brand_id, title, slug, era_origin, condition_grade, price, stock_status, description, dimensions, video_path, meta_title, meta_description)
-                    VALUES ({$cat_sql}, {$brand_sql}, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    (category_id, brand_id, title, slug, era_origin, condition_grade, price, stock_status, is_featured, description, dimensions, video_path, meta_title, meta_description)
+                    VALUES ({$cat_sql}, {$brand_sql}, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
                 $stmt = mysqli_prepare($conn, $insert_query);
 
                 if ($stmt) {
                     mysqli_stmt_bind_param(
                         $stmt,
-                        "ssssdssssss",
+                        "ssssdsisssss",
                         $title,
                         $slug,
                         $era_origin,
                         $condition_grade,
                         $price_num,
                         $stock_status,
+                        $is_featured,
                         $description,
                         $dimensions,
                         $video_path,
@@ -245,6 +237,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $category_id = $brand_id = null;
                         $condition_grade = 'Excellent Vintage';
                         $stock_status = 'Available';
+                        $is_featured = 0;
                     } else {
                         $errors[] = "Execution error: " . mysqli_error($conn);
                     }
@@ -340,6 +333,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <option value="Reserved" <?= ($stock_status === 'Reserved') ? 'selected' : '' ?>>Reserved</option>
                     <option value="Sold" <?= ($stock_status === 'Sold') ? 'selected' : '' ?>>Sold</option>
                 </select>
+            </div>
+
+            <!-- Featured Checkbox -->
+            <div class="col-md-12">
+                <div class="form-check form-switch mt-2">
+                    <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured" value="1" <?= $is_featured ? 'checked' : '' ?>>
+                    <label class="form-check-label fw-bold" for="is_featured">⭐ Set as Featured (Display in Homepage Hero Sliding Banner)</label>
+                </div>
             </div>
 
             <div class="col-md-12">

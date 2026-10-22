@@ -2,8 +2,22 @@
 $admin_page_title = "Artifact Inventory | Admin Panel";
 require_once __DIR__ . '/includes/sidebar.php';
 
-// Handle Delete Product
 $msg = '';
+
+// Handle Toggle Featured Status
+if (isset($_GET['action']) && $_GET['action'] === 'toggle_featured' && isset($_GET['id'])) {
+    $prod_id = (int)$_GET['id'];
+    if ($prod_id > 0 && $conn) {
+        $stmt = mysqli_prepare($conn, "UPDATE products SET is_featured = IF(is_featured = 1, 0, 1) WHERE product_id = ?");
+        mysqli_stmt_bind_param($stmt, "i", $prod_id);
+        if (mysqli_stmt_execute($stmt)) {
+            $msg = "Featured status for artifact #{$prod_id} updated.";
+        }
+        mysqli_stmt_close($stmt);
+    }
+}
+
+// Handle Delete Product
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
     $del_id = (int)$_GET['id'];
     if ($del_id > 0 && $conn) {
@@ -53,9 +67,9 @@ if ($conn) {
                 <tr>
                     <th>ID</th>
                     <th>Title</th>
+                    <th>Hero Banner</th>
                     <th>Category</th>
                     <th>Brand / Maker</th>
-                    <th>Condition</th>
                     <th>Price</th>
                     <th>Status</th>
                     <th class="text-end">Actions</th>
@@ -68,10 +82,22 @@ if ($conn) {
                     <?php foreach ($products as $p): ?>
                         <tr>
                             <td>#<?= $p['product_id'] ?></td>
-                            <td class="fw-bold"><?= htmlspecialchars($p['title']) ?></td>
+                            <td class="fw-bold">
+                                <?= htmlspecialchars($p['title']) ?>
+                            </td>
+                            <td>
+                                <?php if ($p['is_featured']): ?>
+                                    <a href="products.php?action=toggle_featured&id=<?= $p['product_id'] ?>" class="badge bg-warning text-dark text-decoration-none">
+                                        ⭐ Featured Slide
+                                    </a>
+                                <?php else: ?>
+                                    <a href="products.php?action=toggle_featured&id=<?= $p['product_id'] ?>" class="badge bg-light text-muted border text-decoration-none">
+                                        + Set Featured
+                                    </a>
+                                <?php endif; ?>
+                            </td>
                             <td><span class="badge bg-light text-dark border"><?= htmlspecialchars($p['category_name'] ?: 'None') ?></span></td>
                             <td><?= htmlspecialchars($p['brand_name'] ?: 'Unattributed') ?></td>
-                            <td><span class="badge bg-dark"><?= htmlspecialchars($p['condition_grade']) ?></span></td>
                             <td class="fw-bold">$<?= number_format((float)$p['price'], 2) ?></td>
                             <td>
                                 <span class="badge <?= $p['stock_status'] === 'Available' ? 'bg-success' : ($p['stock_status'] === 'Reserved' ? 'bg-warning text-dark' : 'bg-danger') ?>">

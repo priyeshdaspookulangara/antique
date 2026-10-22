@@ -39,7 +39,7 @@ CREATE TABLE brands (
     description TEXT DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 4. Products Table (Strictly 1-of-1 Logic & SEO)
+-- 4. Products Table (Strictly 1-of-1 Logic & SEO & Hero Featured Flag)
 CREATE TABLE products (
     product_id INT AUTO_INCREMENT PRIMARY KEY,
     category_id INT DEFAULT NULL,
@@ -50,6 +50,7 @@ CREATE TABLE products (
     condition_grade ENUM('Museum Quality', 'Excellent Vintage', 'Patina-Rich / Weathered') NOT NULL DEFAULT 'Excellent Vintage',
     price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     stock_status ENUM('Available', 'Reserved', 'Sold') NOT NULL DEFAULT 'Available',
+    is_featured TINYINT(1) NOT NULL DEFAULT 0,
     description TEXT DEFAULT NULL,
     dimensions VARCHAR(100) DEFAULT NULL,
     video_path VARCHAR(255) DEFAULT NULL,

@@ -6,6 +6,24 @@ $page_desc = "Handcrafted brass wall decor, framed deities and antique pieces, e
 
 require_once __DIR__ . '/includes/header.php';
 
+// Fetch featured products for Hero Sliding Banner
+$featured_slides = [];
+if ($conn) {
+    $feat_res = mysqli_query($conn, "
+        SELECT p.*, c.category_name,
+               (SELECT image_path FROM product_media pm WHERE pm.product_id = p.product_id ORDER BY is_primary DESC, media_id ASC LIMIT 1) as primary_image
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.category_id
+        WHERE p.is_featured = 1 AND p.stock_status = 'Available'
+        ORDER BY p.created_at DESC
+    ");
+    if ($feat_res) {
+        while ($row = mysqli_fetch_assoc($feat_res)) {
+            $featured_slides[] = $row;
+        }
+    }
+}
+
 // Fetch categories from DB
 $categories = [];
 if ($conn) {
@@ -40,7 +58,6 @@ if ($conn) {
     }
 }
 
-// Panel style classes array to cycle velvet backgrounds if no image
 $panel_classes = ['', 'wine', 'pink'];
 ?>
 
@@ -48,7 +65,9 @@ $panel_classes = ['', 'wine', 'pink'];
 <!-- Hero slider -->
 <div class="slider" id="slider" role="region" aria-roledescription="carousel" aria-label="Featured collections">
   <div class="slides" id="slides">
-    <div class="slide s1" aria-label="1 of 3">
+
+    <!-- Static Default Slide 1 -->
+    <div class="slide s1" aria-label="Default Slide">
       <div class="wrap">
         <div>
           <h1>Brass, wood and velvet, made to hang on your wall.</h1>
@@ -64,28 +83,57 @@ $panel_classes = ['', 'wine', 'pink'];
         </div>
       </div>
     </div>
-    <div class="slide s2" aria-label="2 of 3">
-      <div class="wrap">
-        <div>
-          <h2>Temple bells and brass lamps.</h2>
-          <p>Antique-finish bells and lamps with a rich, warm tone. Hang one at your entrance or prayer room.</p>
-          <div class="cta">
-            <a href="products.php?status=Available" class="btn-brass text-decoration-none">Shop bells &amp; lamps</a>
+
+    <!-- Dynamic Featured Product Slides (Starting from 1 onwards) -->
+    <?php if (!empty($featured_slides)): ?>
+      <?php foreach ($featured_slides as $f_idx => $f_slide): ?>
+        <div class="slide s2" style="<?= !empty($f_slide['primary_image']) ? "background-image: linear-gradient(90deg, rgba(36,8,9,.92) 35%, rgba(36,8,9,.35)), url('" . htmlspecialchars($f_slide['primary_image']) . "');" : '' ?>" aria-label="Featured Slide <?= $f_idx + 1 ?>">
+          <div class="wrap">
+            <div>
+              <span class="badge bg-warning text-dark text-uppercase px-3 py-1 mb-2 fw-bold">⭐ Featured 1-of-1 Relic</span>
+              <h2 class="text-white"><?= htmlspecialchars($f_slide['title']) ?></h2>
+              <p><?= htmlspecialchars(mb_substr(strip_tags($f_slide['description'] ?? 'Authentic 1-of-1 antique relic from our curated collection.'), 0, 140)) ?>...</p>
+              <div class="price fs-3 text-warning mb-3">₹<?= number_format((float)$f_slide['price'], 0) ?></div>
+              <div class="cta">
+                <a href="product-detail.php?slug=<?= urlencode($f_slide['slug']) ?>" class="btn-brass text-decoration-none">Acquire This Featured Piece</a>
+              </div>
+            </div>
+            <?php if (!empty($f_slide['primary_image'])): ?>
+              <div class="frame d-none d-lg-block">
+                <div class="panel">
+                  <img src="<?= htmlspecialchars($f_slide['primary_image']) ?>" alt="<?= htmlspecialchars($f_slide['title']) ?>">
+                </div>
+              </div>
+            <?php endif; ?>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    <?php else: ?>
+      <!-- Static Default Backup Slides if no products are marked as featured -->
+      <div class="slide s2" aria-label="Default Slide 2">
+        <div class="wrap">
+          <div>
+            <h2>Temple bells and brass lamps.</h2>
+            <p>Antique-finish bells and lamps with a rich, warm tone. Hang one at your entrance or prayer room.</p>
+            <div class="cta">
+              <a href="products.php?status=Available" class="btn-brass text-decoration-none">Shop bells &amp; lamps</a>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="slide s3" aria-label="3 of 3">
-      <div class="wrap">
-        <div>
-          <h2>Deities for your home shrine.</h2>
-          <p>Ganesha, Krishna, Nandi and more in brass and stone. Many pieces are one of a kind.</p>
-          <div class="cta">
-            <a href="products.php" class="btn-brass text-decoration-none">Shop deities</a>
+      <div class="slide s3" aria-label="Default Slide 3">
+        <div class="wrap">
+          <div>
+            <h2>Deities for your home shrine.</h2>
+            <p>Ganesha, Krishna, Nandi and more in brass and stone. Many pieces are one of a kind.</p>
+            <div class="cta">
+              <a href="products.php" class="btn-brass text-decoration-none">Shop deities</a>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    <?php endif; ?>
+
   </div>
   <button class="arrow prev" id="prev" aria-label="Previous slide">&#8249;</button>
   <button class="arrow next" id="next" aria-label="Next slide">&#8250;</button>
