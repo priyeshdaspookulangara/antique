@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/config/db.php';
 
-$page_title = "Brass & Heritage | Antique Decor and Wall Art";
+$page_title = "Patina Decor | Antique Decor and Wall Art";
 $page_desc = "Handcrafted brass wall decor, framed deities and antique pieces, each inspected and ready to hang.";
 
 require_once __DIR__ . '/includes/header.php';

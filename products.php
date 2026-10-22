@@ -1,8 +1,8 @@
 <?php
 require_once __DIR__ . '/config/db.php';
 
-$page_title = "Shop All Antique Wall Decor | Brass & Heritage";
-$page_desc = "Browse complete index of unique 1-of-1 historical artifacts, brass wall panels, and authenticated antique decor.";
+$page_title = "Shop All Antique Wall Decor | Patina Decor";
+$page_desc = "Browse complete index of unique 1-of-1 historical artifacts, brass wall panels, and authenticated patina antique decor.";
 
 require_once __DIR__ . '/includes/header.php';
 
@@ -176,8 +176,8 @@ $relic_symbols = ['ॐ', '❁', '✦', '♨', '❖', '☸', '❀', '✺'];
     <!-- Page Title & Search Header -->
     <div class="d-flex justify-content-between align-items-end mb-4 flex-wrap gap-3">
         <div>
-            <h1 style="font-size:clamp(2.2rem,4vw,3.2rem);">Brass &amp; Heritage Collection</h1>
-            <p style="color:var(--muted);margin-top:6px;">Hand-finished deity panels, antique wall decor, and brass relics.</p>
+            <h1 style="font-size:clamp(2.2rem,4vw,3.2rem);">Patina Decor Collection</h1>
+            <p style="color:var(--muted);margin-top:6px;">Hand-finished deity panels, antique wall decor, and patina brass relics.</p>
         </div>
         <form action="products.php" method="GET" class="d-flex gap-2">
             <input type="text" name="q" class="form-control" placeholder="Search relics..." value="<?= htmlspecialchars($search_query) ?>" style="border-radius:2px;border:1.5px solid var(--line);">

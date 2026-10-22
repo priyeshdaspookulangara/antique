@@ -73,8 +73,13 @@ $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || (isset(
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $current_url = $protocol . $host . ($_SERVER['REQUEST_URI'] ?? '');
 
-$page_title = !empty($product['meta_title']) ? $product['meta_title'] : ($product ? $product['title'] . " | Brass & Heritage" : "Piece Not Found | Brass & Heritage");
-$page_desc = !empty($product['meta_description']) ? $product['meta_description'] : ($product ? mb_substr(strip_tags($product['description'] ?? ''), 0, 150) . '...' : "Handcrafted brass wall decor & 1-of-1 antique relics.");
+$page_title = !empty($product['meta_title']) ? $product['meta_title'] : ($product ? $product['title'] . " | Patina Decor" : "Piece Not Found | Patina Decor");
+$page_desc = !empty($product['meta_description']) ? $product['meta_description'] : ($product ? mb_substr(strip_tags($product['description'] ?? ''), 0, 150) . '...' : "Handcrafted brass wall decor & 1-of-1 patina antique relics.");
+
+// Pass primary image to header for Open Graph og:image tag
+if (!empty($media_items)) {
+    $og_image = (strpos($media_items[0]['image_path'], 'http') === 0) ? $media_items[0]['image_path'] : $protocol . $host . '/' . ltrim($media_items[0]['image_path'], '/');
+}
 
 require_once __DIR__ . '/includes/header.php';
 ?>
@@ -179,7 +184,7 @@ require_once __DIR__ . '/includes/header.php';
                             <?php if (!empty($product['dimensions'])): ?>
                                 <li><strong>Dimensions:</strong> <?= htmlspecialchars($product['dimensions']) ?></li>
                             <?php endif; ?>
-                            <li><strong>Authenticity:</strong> Guaranteed 1-of-1 Original Piece</li>
+                            <li><strong>Authenticity:</strong> Guaranteed Patina 1-of-1 Original Piece</li>
                             <li><strong>Ready to Hang:</strong> Yes (Fittings Attached)</li>
                         </ul>
                     </div>
@@ -195,7 +200,7 @@ require_once __DIR__ . '/includes/header.php';
                     <!-- Acquisition Button -->
                     <div class="d-grid mt-4">
                         <?php if ($product['stock_status'] === 'Available'): ?>
-                            <button type="button" class="btn-brass py-3 fw-bold text-uppercase fs-6 border-0" onclick="alert('Thank you for your interest. Our curator will contact you shortly to complete this 1-of-1 acquisition.')">
+                            <button type="button" class="btn-brass py-3 fw-bold text-uppercase fs-6 border-0" onclick="alert('Thank you for your interest. Our Patina Decor curator will contact you shortly to complete this 1-of-1 acquisition.')">
                                 Acquire This 1-of-1 Piece
                             </button>
                         <?php elseif ($product['stock_status'] === 'Reserved'): ?>

@@ -4,10 +4,10 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 if (!isset($page_title)) {
-    $page_title = "Brass & Heritage | Antique Decor and Wall Art";
+    $page_title = "Patina Decor | Antique Decor and Wall Art";
 }
 if (!isset($page_desc)) {
-    $page_desc = "Handcrafted brass wall decor, framed deities and antique pieces, each inspected and ready to hang.";
+    $page_desc = "Handcrafted brass wall decor, framed deities and patina-rich antique pieces, each inspected and ready to hang.";
 }
 if (!isset($og_image)) {
     $og_image = "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80";
@@ -162,7 +162,7 @@ footer a:hover{color:var(--brass-lt)}
 
 <header>
   <div class="wrap nav-container">
-    <a href="index.php" class="logo">Brass <span>&amp;</span> Heritage</a>
+    <a href="index.php" class="logo">Patina <span>Decor</span></a>
 
     <ul class="menu-nav" id="menu">
       <li><a class="<?= (basename($_SERVER['PHP_SELF']) == 'index.php') ? 'on' : '' ?>" href="index.php">Home</a></li>

@@ -4,8 +4,8 @@
   <div class="wrap">
     <div class="fgrid">
       <div>
-        <h4>Brass &amp; Heritage</h4>
-        <p>Antique and handcrafted brass decor, framed deities, and museum-grade relics shipped across India and worldwide.</p>
+        <h4>Patina Decor</h4>
+        <p>Antique and handcrafted brass decor, framed deities, and museum-grade patina relics shipped across India and worldwide.</p>
       </div>
       <div>
         <h4>Shop</h4>
@@ -27,12 +27,12 @@
         <h4>Visit</h4>
         <ul>
           <li>Kerala, India</li>
-          <li><a href="mailto:hello@brassandheritage.com">hello@brassandheritage.com</a></li>
+          <li><a href="mailto:hello@patinadecor.com">hello@patinadecor.com</a></li>
         </ul>
       </div>
     </div>
     <div class="copy">
-      © <?= date('Y') ?> Brass &amp; Heritage. All rights reserved. Authentic 1-of-1 Antique Artifacts.
+      © <?= date('Y') ?> Patina Decor. All rights reserved. Authentic 1-of-1 Antique Relics &amp; Wall Art.
     </div>
   </div>
 </footer>
