@@ -1,0 +1,10 @@
+[Thu Oct 22 04:15:30 2026] PHP 8.3.6 Development Server (http://127.0.0.1:8080) started
+[Thu Oct 22 04:15:39 2026] 127.0.0.1:60968 Accepted
+[Thu Oct 22 04:15:39 2026] 127.0.0.1:60968 [200]: HEAD /sitemap.php
+[Thu Oct 22 04:15:39 2026] 127.0.0.1:60968 Closing
+[Thu Oct 22 04:15:39 2026] 127.0.0.1:60980 Accepted
+[Thu Oct 22 04:15:39 2026] 127.0.0.1:60980 [200]: GET /sitemap.php
+[Thu Oct 22 04:15:39 2026] 127.0.0.1:60980 Closing
+[Thu Oct 22 04:15:50 2026] 127.0.0.1:53046 Accepted
+[Thu Oct 22 04:15:50 2026] 127.0.0.1:53046 [404]: GET /product-detail.php
+[Thu Oct 22 04:15:50 2026] 127.0.0.1:53046 Closing
