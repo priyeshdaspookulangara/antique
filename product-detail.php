@@ -68,215 +68,143 @@ if (!$product && !headers_sent()) {
     http_response_code(404);
 }
 
-// Determine Host & Protocol for Canonical / OG URLs
+// Host & Protocol
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443)) ? "https://" : "http://";
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $current_url = $protocol . $host . ($_SERVER['REQUEST_URI'] ?? '');
 
-// Dynamic SEO Head Injection
-$page_meta_title = !empty($product['meta_title']) ? $product['meta_title'] : ($product ? $product['title'] . " | Antique Artifacts Collection" : "Artifact Not Found");
-$page_meta_desc = !empty($product['meta_description']) ? $product['meta_description'] : ($product ? mb_substr(strip_tags($product['description'] ?? ''), 0, 150) . '...' : "Exclusive 1-of-1 Antique Artifacts.");
+$page_title = !empty($product['meta_title']) ? $product['meta_title'] : ($product ? $product['title'] . " | Brass & Heritage" : "Piece Not Found | Brass & Heritage");
+$page_desc = !empty($product['meta_description']) ? $product['meta_description'] : ($product ? mb_substr(strip_tags($product['description'] ?? ''), 0, 150) . '...' : "Handcrafted brass wall decor & 1-of-1 antique relics.");
 
-// Primary Image for Open Graph
-$primary_image = 'assets/placeholder.jpg';
-if (!empty($media_items)) {
-    $primary_image = $media_items[0]['image_path'];
-}
-$og_image_url = (strpos($primary_image, 'http') === 0) ? $primary_image : $protocol . $host . '/' . ltrim($primary_image, '/');
+require_once __DIR__ . '/includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Dynamic SEO Meta Tags -->
-    <title><?= htmlspecialchars($page_meta_title) ?></title>
-    <meta name="description" content="<?= htmlspecialchars($page_meta_desc) ?>">
-
-    <!-- Dynamic Open Graph (OG) Meta Tags -->
-    <meta property="og:title" content="<?= htmlspecialchars($page_meta_title) ?>">
-    <meta property="og:description" content="<?= htmlspecialchars($page_meta_desc) ?>">
-    <meta property="og:image" content="<?= htmlspecialchars($og_image_url) ?>">
-    <meta property="og:url" content="<?= htmlspecialchars($current_url) ?>">
-    <meta property="og:type" content="product">
-
-    <!-- Twitter Card Meta Tags -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="<?= htmlspecialchars($page_meta_title) ?>">
-    <meta name="twitter:description" content="<?= htmlspecialchars($page_meta_desc) ?>">
-    <meta name="twitter:image" content="<?= htmlspecialchars($og_image_url) ?>">
-
-    <!-- Stylesheets -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background-color: #faf8f5; color: #2b2b2b; font-family: 'Georgia', serif; }
-        .header-brand { font-family: 'Cinzel', 'Georgia', serif; letter-spacing: 1.5px; }
-        .main-gallery-img { max-height: 500px; width: 100%; object-fit: contain; background: #111; border-radius: 6px; }
-        .thumb-img { height: 80px; width: 80px; object-fit: cover; border: 2px solid transparent; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
-        .thumb-img.active, .thumb-img:hover { border-color: #8c2d19; transform: scale(1.05); }
-        .price-tag { font-size: 2rem; color: #8c2d19; font-weight: bold; }
-        .badge-museum { background-color: #3d2314; color: #f4e8d1; }
-        .badge-vintage { background-color: #1e3d2f; color: #e1f0e6; }
-        .badge-patina { background-color: #5a4010; color: #fdf5e6; }
-        .stock-available { background-color: #198754; color: #fff; }
-        .stock-reserved { background-color: #fd7e14; color: #fff; }
-        .stock-sold { background-color: #dc3545; color: #fff; }
-        .artifact-spec-box { background: #fff; border: 1px solid #e0d8cf; border-radius: 6px; padding: 20px; }
-    </style>
-</head>
-<body>
-
-<!-- Navbar Header -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3">
-    <div class="container">
-        <a class="navbar-brand header-brand text-uppercase" href="index.php">🏛️ Museum Artifact Collection</a>
-        <div class="d-flex gap-2">
-            <a href="products.php" class="btn btn-outline-light btn-sm">Catalog</a>
-            <a href="admin/dashboard.php" class="btn btn-outline-warning btn-sm">Admin Panel</a>
-        </div>
-    </div>
-</nav>
-
-<div class="container my-5">
+<div class="wrap my-5">
     <?php if (!$product): ?>
-        <div class="row justify-content-center py-5">
-            <div class="col-md-8 text-center">
-                <h1 class="display-5 text-muted">Artifact Not Found</h1>
-                <p class="lead text-secondary">The requested 1-of-1 historical piece is unavailable or does not exist.</p>
-                <a href="index.php" class="btn btn-primary mt-3">Return to Collection</a>
-            </div>
+        <div class="text-center py-5">
+            <h1 class="display-5" style="font-family:var(--serif);">Piece Not Found</h1>
+            <p class="text-muted">The requested 1-of-1 artifact is unavailable or has been acquired.</p>
+            <a href="products.php" class="btn-brass text-decoration-none mt-3 inline-block">Return to Shop</a>
         </div>
     <?php else: ?>
 
-        <!-- Breadcrumb Navigation -->
+        <!-- Breadcrumb -->
         <nav aria-label="breadcrumb" class="mb-4">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="index.php" class="text-decoration-none text-muted">Home</a></li>
+            <ol class="breadcrumb small">
+                <li class="breadcrumb-item"><a href="index.php" class="text-muted text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item"><a href="products.php" class="text-muted text-decoration-none">Shop</a></li>
                 <?php if (!empty($product['category_name'])): ?>
-                    <li class="breadcrumb-item"><a href="products.php?category=<?= urlencode($product['category_slug']) ?>" class="text-decoration-none text-muted"><?= htmlspecialchars($product['category_name']) ?></a></li>
+                    <li class="breadcrumb-item"><a href="products.php?category=<?= urlencode($product['category_slug']) ?>" class="text-muted text-decoration-none"><?= htmlspecialchars($product['category_name']) ?></a></li>
                 <?php endif; ?>
                 <li class="breadcrumb-item active" aria-current="page"><?= htmlspecialchars($product['title']) ?></li>
             </ol>
         </nav>
 
         <div class="row g-5">
-            <!-- Left Column: Media Gallery & HTML5 Video Inspection -->
-            <div class="col-lg-7">
-
-                <!-- Primary Image Box -->
-                <div class="position-relative mb-3 text-center">
-                    <?php if (!empty($media_items)): ?>
-                        <img id="primaryGalleryImage" src="<?= htmlspecialchars($media_items[0]['image_path']) ?>" alt="<?= htmlspecialchars($product['title']) ?>" class="main-gallery-img shadow">
-                    <?php else: ?>
-                        <div class="main-gallery-img d-flex align-items-center justify-content-center text-muted">No Images Available</div>
-                    <?php endif; ?>
+            <!-- Left Column: Framed Gallery & Inspection Video -->
+            <div class="col-lg-6">
+                <div class="frame mb-3">
+                    <div class="panel">
+                        <div class="relic">ॐ</div>
+                        <?php if (!empty($media_items)): ?>
+                            <img id="primaryGalleryImage" src="<?= htmlspecialchars($media_items[0]['image_path']) ?>" alt="<?= htmlspecialchars($product['title']) ?>">
+                        <?php endif; ?>
+                    </div>
                 </div>
 
-                <!-- Thumbnails Carousel/Grid -->
+                <!-- Thumbnail Switcher -->
                 <?php if (count($media_items) > 1): ?>
                     <div class="d-flex gap-2 flex-wrap mb-4 justify-content-center">
                         <?php foreach ($media_items as $index => $item): ?>
                             <img src="<?= htmlspecialchars($item['image_path']) ?>"
                                  alt="Thumbnail <?= $index + 1 ?>"
-                                 class="thumb-img <?= $index === 0 ? 'active' : '' ?>"
-                                 onclick="switchPrimaryImage(this, '<?= htmlspecialchars($item['image_path']) ?>')">
+                                 class="thumb-img <?= $index === 0 ? 'border-warning' : '' ?>"
+                                 style="height:70px;width:70px;object-fit:cover;cursor:pointer;border:2px solid transparent;"
+                                 onclick="document.getElementById('primaryGalleryImage').src='<?= htmlspecialchars($item['image_path']) ?>'">
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
 
-                <!-- 360 Walkthrough / Inspection Video Player -->
+                <!-- 360 Walkthrough / Video Player -->
                 <?php if (!empty($product['video_path']) && file_exists(__DIR__ . '/' . $product['video_path'])):
                     $vid_ext = strtolower(pathinfo($product['video_path'], PATHINFO_EXTENSION));
                     $vid_mime = ($vid_ext === 'mov') ? 'video/quicktime' : 'video/mp4';
                 ?>
-                    <div class="mt-4 p-3 bg-white border rounded shadow-sm">
-                        <h3 class="h6 fw-bold text-uppercase mb-3">🎥 Artifact 360° Walkthrough & Detail Video</h3>
+                    <div class="mt-4 p-3 bg-white border rounded">
+                        <h3 class="h6 fw-bold text-uppercase mb-2" style="font-family:var(--serif);">🎥 Inspection Video</h3>
                         <div class="ratio ratio-16x9">
                             <video controls class="rounded">
                                 <source src="<?= htmlspecialchars($product['video_path']) ?>" type="<?= $vid_mime ?>">
-                                Your browser does not support HTML5 video inspection.
+                                Browser does not support HTML5 video inspection.
                             </video>
                         </div>
                     </div>
                 <?php endif; ?>
-
             </div>
 
-            <!-- Right Column: Artifact Provenance & 1-of-1 Action -->
-            <div class="col-lg-5">
-                <div class="artifact-spec-box shadow-sm">
+            <!-- Right Column: Relic Provenance & Acquisition -->
+            <div class="col-lg-6">
+                <div class="p-4 p-md-5 bg-white border shadow-sm" style="border-radius:2px;">
 
-                    <!-- Stock & Condition Badges -->
                     <div class="d-flex align-items-center gap-2 mb-3">
-                        <?php
-                        $badge_class = 'badge-vintage';
-                        if ($product['condition_grade'] === 'Museum Quality') $badge_class = 'badge-museum';
-                        if ($product['condition_grade'] === 'Patina-Rich / Weathered') $badge_class = 'badge-patina';
-                        ?>
-                        <span class="badge <?= $badge_class ?> px-3 py-2 fs-6"><?= htmlspecialchars($product['condition_grade']) ?></span>
-
-                        <?php
-                        $stock_class = 'stock-available';
-                        if ($product['stock_status'] === 'Reserved') $stock_class = 'stock-reserved';
-                        if ($product['stock_status'] === 'Sold') $stock_class = 'stock-sold';
-                        ?>
-                        <span class="badge <?= $stock_class ?> px-3 py-2 fs-6">
+                        <span class="badge bg-dark px-3 py-2"><?= htmlspecialchars($product['condition_grade']) ?></span>
+                        <span class="tag <?= $product['stock_status'] === 'Available' ? 'one' : '' ?> px-3 py-2">
                             <?= $product['stock_status'] === 'Available' ? '1-of-1 Available' : htmlspecialchars($product['stock_status']) ?>
                         </span>
                     </div>
 
-                    <h1 class="h2 fw-bold text-dark mb-2"><?= htmlspecialchars($product['title']) ?></h1>
+                    <h1 class="h2 mb-2" style="font-family:var(--serif);font-weight:700;"><?= htmlspecialchars($product['title']) ?></h1>
 
                     <?php if (!empty($product['brand_name'])): ?>
-                        <p class="text-secondary fs-6 mb-1"><strong>Maker / Guild:</strong> <?= htmlspecialchars($product['brand_name']) ?></p>
+                        <p class="text-muted small mb-1"><strong>Maker / Guild:</strong> <?= htmlspecialchars($product['brand_name']) ?></p>
                     <?php endif; ?>
 
                     <?php if (!empty($product['era_origin'])): ?>
-                        <p class="text-muted fs-6 mb-3"><strong>Origin / Era:</strong> <?= htmlspecialchars($product['era_origin']) ?></p>
+                        <p class="text-muted small mb-3"><strong>Origin / Era:</strong> <?= htmlspecialchars($product['era_origin']) ?></p>
                     <?php endif; ?>
 
-                    <div class="price-tag mb-4">
-                        $<?= number_format((float)$product['price'], 2) ?>
+                    <div class="fs-2 fw-bold mb-4" style="color:var(--oxblood);">
+                        ₹<?= number_format((float)$product['price'], 0) ?>
                     </div>
 
                     <hr>
 
-                    <!-- Details Listing -->
+                    <!-- Specifications -->
                     <div class="mb-4">
-                        <h2 class="h6 fw-bold text-uppercase text-secondary">Artifact Specifications</h2>
-                        <ul class="list-unstyled text-secondary mt-2">
+                        <h3 class="h6 text-uppercase fw-bold text-muted">Specifications</h3>
+                        <ul class="list-unstyled text-secondary mt-2 small lh-lg">
                             <?php if (!empty($product['category_name'])): ?>
-                                <li class="mb-1"><strong>Category:</strong> <?= htmlspecialchars($product['category_name']) ?></li>
+                                <li><strong>Category:</strong> <?= htmlspecialchars($product['category_name']) ?></li>
                             <?php endif; ?>
                             <?php if (!empty($product['dimensions'])): ?>
-                                <li class="mb-1"><strong>Dimensions:</strong> <?= htmlspecialchars($product['dimensions']) ?></li>
+                                <li><strong>Dimensions:</strong> <?= htmlspecialchars($product['dimensions']) ?></li>
                             <?php endif; ?>
-                            <li class="mb-1"><strong>Edition:</strong> Unique 1-of-1 Authentic Piece</li>
+                            <li><strong>Authenticity:</strong> Guaranteed 1-of-1 Original Piece</li>
+                            <li><strong>Ready to Hang:</strong> Yes (Fittings Attached)</li>
                         </ul>
                     </div>
 
                     <!-- Description -->
                     <div class="mb-4">
-                        <h2 class="h6 fw-bold text-uppercase text-secondary">Historical Overview & Provenance</h2>
-                        <div class="text-secondary lh-lg fs-6 mt-2">
-                            <?= nl2br(htmlspecialchars($product['description'] ?? 'No detailed description provided.')) ?>
-                        </div>
+                        <h3 class="h6 text-uppercase fw-bold text-muted">Historical Overview &amp; Provenance</h3>
+                        <p class="text-secondary lh-lg mt-2" style="font-size:0.95rem;">
+                            <?= nl2br(htmlspecialchars($product['description'] ?? 'No detailed provenance provided.')) ?>
+                        </p>
                     </div>
 
-                    <!-- Action Button Logic (Strict 1-of-1 Purchase/Inquiry) -->
-                    <div class="d-grid gap-2 mt-4">
+                    <!-- Acquisition Button -->
+                    <div class="d-grid mt-4">
                         <?php if ($product['stock_status'] === 'Available'): ?>
-                            <button type="button" class="btn btn-dark btn-lg py-3 fw-bold text-uppercase" onclick="handleInquiry('<?= htmlspecialchars($product['slug']) ?>')">
-                                Acquire This 1-of-1 Artifact
+                            <button type="button" class="btn-brass py-3 fw-bold text-uppercase fs-6 border-0" onclick="alert('Thank you for your interest. Our curator will contact you shortly to complete this 1-of-1 acquisition.')">
+                                Acquire This 1-of-1 Piece
                             </button>
                         <?php elseif ($product['stock_status'] === 'Reserved'): ?>
-                            <button type="button" class="btn btn-warning btn-lg py-3 fw-bold text-uppercase text-dark" disabled>
-                                🔒 Currently Reserved by Collector
+                            <button type="button" class="btn btn-warning py-3 fw-bold text-dark text-uppercase fs-6" disabled>
+                                🔒 Currently Reserved
                             </button>
                         <?php else: ?>
-                            <button type="button" class="btn btn-secondary btn-lg py-3 fw-bold text-uppercase" disabled>
-                                🔒 Sold (1-of-1 Private Collection)
+                            <button type="button" class="btn btn-secondary py-3 fw-bold text-uppercase fs-6" disabled>
+                                🔒 Sold (Private Collection)
                             </button>
                         <?php endif; ?>
                     </div>
@@ -288,20 +216,4 @@ $og_image_url = (strpos($primary_image, 'http') === 0) ? $primary_image : $proto
     <?php endif; ?>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    function switchPrimaryImage(thumbElement, imageSrc) {
-        const primaryImg = document.getElementById('primaryGalleryImage');
-        if (primaryImg) {
-            primaryImg.src = imageSrc;
-        }
-        document.querySelectorAll('.thumb-img').forEach(el => el.classList.remove('active'));
-        thumbElement.classList.add('active');
-    }
-
-    function handleInquiry(slug) {
-        alert('Thank you for your interest in this unique 1-of-1 artifact. Our curator will get in touch shortly.');
-    }
-</script>
-</body>
-</html>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

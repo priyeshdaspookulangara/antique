@@ -1,14 +1,14 @@
 <?php
 require_once __DIR__ . '/config/db.php';
 
-$page_title = "Artifact Catalog | 1-of-1 Antique Collection";
-$page_desc = "Browse complete index of unique 1-of-1 historical artifacts with advanced filters, category browsing, brand filtering, and price sorting.";
+$page_title = "Shop All Antique Wall Decor | Brass & Heritage";
+$page_desc = "Browse complete index of unique 1-of-1 historical artifacts, brass wall panels, and authenticated antique decor.";
 
 require_once __DIR__ . '/includes/header.php';
 
 // Filter & Pagination Parameters
 $search_query   = trim($_GET['q'] ?? '');
-$cat_slug       = trim($_GET['category'] ?? '');
+$cat_slug       = trim($_GET['category'] ?? ($_GET['c'] ?? ''));
 $brand_slug     = trim($_GET['brand'] ?? '');
 $status_filter  = trim($_GET['status'] ?? '');
 $condition_f    = trim($_GET['condition'] ?? '');
@@ -17,7 +17,7 @@ $max_price      = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (floa
 $sort_by        = trim($_GET['sort'] ?? 'newest');
 
 $page           = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-$per_page       = 6;
+$per_page       = 8;
 $offset         = ($page - 1) * $per_page;
 
 // Build Dynamic WHERE Clause
@@ -92,21 +92,13 @@ switch ($sort_by) {
         break;
 }
 
-// Fetch categories & brands for sidebar filter
+// Fetch categories for sidebar filter
 $categories = [];
-$brands = [];
 if ($conn) {
     $cat_res = mysqli_query($conn, "SELECT category_id, category_name, slug FROM categories ORDER BY category_name ASC");
     if ($cat_res) {
         while ($row = mysqli_fetch_assoc($cat_res)) {
             $categories[] = $row;
-        }
-    }
-
-    $brand_res = mysqli_query($conn, "SELECT brand_id, brand_name, slug FROM brands ORDER BY brand_name ASC");
-    if ($brand_res) {
-        while ($row = mysqli_fetch_assoc($brand_res)) {
-            $brands[] = $row;
         }
     }
 }
@@ -169,41 +161,38 @@ if ($conn) {
     }
 }
 
-// Helper function to build pagination query strings
 function build_filter_url($override_params = []) {
     $current_get = $_GET;
     $merged = array_merge($current_get, $override_params);
     return 'products.php?' . http_build_query($merged);
 }
+
+$panel_classes = ['', 'wine', 'pink'];
+$relic_symbols = ['ॐ', '❁', '✦', '♨', '❖', '☸', '❀', '✺'];
 ?>
 
-<div class="container my-5">
+<div class="wrap my-5">
 
-    <!-- Page Header & Search Bar -->
-    <div class="row align-items-center mb-4">
-        <div class="col-md-6">
-            <h1 class="h3 header-brand mb-1">Artifact Catalog</h1>
-            <p class="text-muted small mb-0">Discover authentic 1-of-1 historical relics, makers, and museum-grade masterworks.</p>
+    <!-- Page Title & Search Header -->
+    <div class="d-flex justify-content-between align-items-end mb-4 flex-wrap gap-3">
+        <div>
+            <h1 style="font-size:clamp(2.2rem,4vw,3.2rem);">Brass &amp; Heritage Collection</h1>
+            <p style="color:var(--muted);margin-top:6px;">Hand-finished deity panels, antique wall decor, and brass relics.</p>
         </div>
-        <div class="col-md-6">
-            <form action="products.php" method="GET" class="d-flex gap-2">
-                <?php if (!empty($cat_slug)): ?><input type="hidden" name="category" value="<?= htmlspecialchars($cat_slug) ?>"><?php endif; ?>
-                <?php if (!empty($brand_slug)): ?><input type="hidden" name="brand" value="<?= htmlspecialchars($brand_slug) ?>"><?php endif; ?>
-                <?php if (!empty($status_filter)): ?><input type="hidden" name="status" value="<?= htmlspecialchars($status_filter) ?>"><?php endif; ?>
-                <input type="text" name="q" class="form-control" placeholder="Search title, era, maker..." value="<?= htmlspecialchars($search_query) ?>">
-                <button type="submit" class="btn btn-dark px-4">Search</button>
-            </form>
-        </div>
+        <form action="products.php" method="GET" class="d-flex gap-2">
+            <input type="text" name="q" class="form-control" placeholder="Search relics..." value="<?= htmlspecialchars($search_query) ?>" style="border-radius:2px;border:1.5px solid var(--line);">
+            <button type="submit" class="btn-brass" style="padding:8px 20px;">Search</button>
+        </form>
     </div>
 
     <div class="row g-4">
 
         <!-- Filter Sidebar -->
         <div class="col-lg-3">
-            <div class="card p-3 shadow-sm border-0 bg-white">
+            <div class="p-4 bg-white shadow-sm" style="border:1px solid var(--line);border-radius:2px;">
                 <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                    <h2 class="h5 header-brand mb-0">Refine Results</h2>
-                    <a href="products.php" class="btn btn-sm btn-link text-decoration-none text-muted p-0">Reset All</a>
+                    <h2 class="h5 mb-0" style="font-family:var(--serif);">Refine Collection</h2>
+                    <a href="products.php" class="small text-muted text-decoration-none">Reset</a>
                 </div>
 
                 <form action="products.php" method="GET">
@@ -211,9 +200,9 @@ function build_filter_url($override_params = []) {
 
                     <!-- Category Filter -->
                     <div class="mb-3">
-                        <label class="form-label fw-bold text-uppercase small text-muted">Category</label>
+                        <label class="form-label fw-bold small text-uppercase text-muted">Collection / Category</label>
                         <select name="category" class="form-select form-select-sm" onchange="this.form.submit()">
-                            <option value="">All Categories</option>
+                            <option value="">All Collections</option>
                             <?php foreach ($categories as $cat): ?>
                                 <option value="<?= htmlspecialchars($cat['slug']) ?>" <?= ($cat_slug === $cat['slug']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($cat['category_name']) ?>
@@ -222,152 +211,105 @@ function build_filter_url($override_params = []) {
                         </select>
                     </div>
 
-                    <!-- Brand / Maker Guild Filter -->
+                    <!-- Price Range -->
                     <div class="mb-3">
-                        <label class="form-label fw-bold text-uppercase small text-muted">Brand / Guild</label>
-                        <select name="brand" class="form-select form-select-sm" onchange="this.form.submit()">
-                            <option value="">All Brands / Makers</option>
-                            <?php foreach ($brands as $b): ?>
-                                <option value="<?= htmlspecialchars($b['slug']) ?>" <?= ($brand_slug === $b['slug']) ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($b['brand_name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <!-- Price Range Filter -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-uppercase small text-muted">Price Range ($)</label>
+                        <label class="form-label fw-bold small text-uppercase text-muted">Price Range (₹)</label>
                         <div class="row g-2">
                             <div class="col-6">
-                                <input type="number" step="0.01" name="min_price" class="form-control form-control-sm" placeholder="Min $" value="<?= $min_price !== null ? htmlspecialchars($min_price) : '' ?>">
+                                <input type="number" name="min_price" class="form-control form-control-sm" placeholder="Min ₹" value="<?= $min_price !== null ? htmlspecialchars($min_price) : '' ?>">
                             </div>
                             <div class="col-6">
-                                <input type="number" step="0.01" name="max_price" class="form-control form-control-sm" placeholder="Max $" value="<?= $max_price !== null ? htmlspecialchars($max_price) : '' ?>">
+                                <input type="number" name="max_price" class="form-control form-control-sm" placeholder="Max ₹" value="<?= $max_price !== null ? htmlspecialchars($max_price) : '' ?>">
                             </div>
                         </div>
                     </div>
 
-                    <!-- Stock Status Filter -->
+                    <!-- Stock Status -->
                     <div class="mb-3">
-                        <label class="form-label fw-bold text-uppercase small text-muted">1-of-1 Stock Status</label>
+                        <label class="form-label fw-bold small text-uppercase text-muted">Availability</label>
                         <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-                            <option value="">All Statuses</option>
-                            <option value="Available" <?= ($status_filter === 'Available') ? 'selected' : '' ?>>🟢 Available</option>
+                            <option value="">All Pieces</option>
+                            <option value="Available" <?= ($status_filter === 'Available') ? 'selected' : '' ?>>🟢 1-of-1 Available</option>
                             <option value="Reserved" <?= ($status_filter === 'Reserved') ? 'selected' : '' ?>>🟠 Reserved</option>
-                            <option value="Sold" <?= ($status_filter === 'Sold') ? 'selected' : '' ?>>🔴 Sold (Private Collections)</option>
+                            <option value="Sold" <?= ($status_filter === 'Sold') ? 'selected' : '' ?>>🔴 Sold</option>
                         </select>
                     </div>
 
-                    <!-- Condition Grade Filter -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-uppercase small text-muted">Condition Grade</label>
-                        <select name="condition" class="form-select form-select-sm" onchange="this.form.submit()">
-                            <option value="">All Condition Grades</option>
-                            <option value="Museum Quality" <?= ($condition_f === 'Museum Quality') ? 'selected' : '' ?>>Museum Quality</option>
-                            <option value="Excellent Vintage" <?= ($condition_f === 'Excellent Vintage') ? 'selected' : '' ?>>Excellent Vintage</option>
-                            <option value="Patina-Rich / Weathered" <?= ($condition_f === 'Patina-Rich / Weathered') ? 'selected' : '' ?>>Patina-Rich / Weathered</option>
-                        </select>
-                    </div>
-
-                    <!-- Sort Order -->
+                    <!-- Sort -->
                     <div class="mb-4">
-                        <label class="form-label fw-bold text-uppercase small text-muted">Sort By</label>
+                        <label class="form-label fw-bold small text-uppercase text-muted">Sort Order</label>
                         <select name="sort" class="form-select form-select-sm" onchange="this.form.submit()">
-                            <option value="newest" <?= ($sort_by === 'newest') ? 'selected' : '' ?>>Newest Acquisitions</option>
+                            <option value="newest" <?= ($sort_by === 'newest') ? 'selected' : '' ?>>Newest Arrivals</option>
                             <option value="price_asc" <?= ($sort_by === 'price_asc') ? 'selected' : '' ?>>Price: Low to High</option>
                             <option value="price_desc" <?= ($sort_by === 'price_desc') ? 'selected' : '' ?>>Price: High to Low</option>
-                            <option value="title_asc" <?= ($sort_by === 'title_asc') ? 'selected' : '' ?>>Title: A to Z</option>
-                            <option value="oldest" <?= ($sort_by === 'oldest') ? 'selected' : '' ?>>Oldest First</option>
                         </select>
                     </div>
 
-                    <button type="submit" class="btn btn-outline-dark btn-sm w-100 fw-bold">Apply Filters</button>
+                    <button type="submit" class="btn-dark-theme w-100 fw-bold">Apply Filters</button>
                 </form>
-
             </div>
         </div>
 
-        <!-- Products Listing Grid -->
+        <!-- Catalog Grid -->
         <div class="col-lg-9">
 
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-secondary small">
-                    Showing <strong><?= count($products) ?></strong> of <strong><?= $total_products ?></strong> artifact(s)
-                </span>
-
-                <?php if (!empty($search_query) || !empty($cat_slug) || !empty($brand_slug) || !empty($status_filter) || !empty($condition_f) || $min_price !== null || $max_price !== null): ?>
-                    <span class="badge bg-light text-dark border">Filters Applied</span>
-                <?php endif; ?>
+                <span class="text-muted small">Showing <strong><?= count($products) ?></strong> of <strong><?= $total_products ?></strong> piece(s)</span>
             </div>
 
             <?php if (empty($products)): ?>
-                <div class="alert alert-warning p-5 text-center shadow-sm">
-                    <h2 class="h5 fw-bold mb-2">No matching 1-of-1 artifacts found</h2>
-                    <p class="text-secondary mb-3">Try adjusting your price range, clearing search terms, or resetting filters.</p>
-                    <a href="products.php" class="btn btn-dark btn-sm">Reset All Filters</a>
+                <div class="p-5 text-center bg-white border rounded">
+                    <h2 class="h5 fw-bold mb-2">No matching pieces found</h2>
+                    <p class="text-muted mb-3">Try clearing search filters or price ranges.</p>
+                    <a href="products.php" class="btn-dark-theme text-decoration-none">View All Pieces</a>
                 </div>
             <?php else: ?>
-                <div class="row g-4">
-                    <?php foreach ($products as $item): ?>
-                        <div class="col-md-6 col-lg-4">
-                            <div class="card card-artifact h-100 shadow-sm">
-                                <?php
-                                $img = !empty($item['primary_image']) ? $item['primary_image'] : 'https://via.placeholder.com/600x400/2c221e/f4e8d1?text=1-of-1+Artifact';
-                                ?>
-                                <img src="<?= htmlspecialchars($img) ?>" class="card-img-top artifact-img-cover" alt="<?= htmlspecialchars($item['title']) ?>">
-
-                                <div class="card-body d-flex flex-column">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="badge bg-secondary text-uppercase fs-7"><?= htmlspecialchars($item['category_name'] ?? 'Relic') ?></span>
-                                        <span class="badge <?= $item['stock_status'] === 'Available' ? 'bg-success' : ($item['stock_status'] === 'Reserved' ? 'bg-warning text-dark' : 'bg-danger') ?>">
-                                            <?= htmlspecialchars($item['stock_status']) ?>
-                                        </span>
-                                    </div>
-
-                                    <h2 class="h6 card-title text-dark fw-bold mb-2">
-                                        <a href="product-detail.php?slug=<?= urlencode($item['slug']) ?>" class="text-dark text-decoration-none">
-                                            <?= htmlspecialchars($item['title']) ?>
-                                        </a>
-                                    </h2>
-
-                                    <?php if (!empty($item['brand_name'])): ?>
-                                        <p class="text-muted small mb-1"><strong>Maker:</strong> <?= htmlspecialchars($item['brand_name']) ?></p>
+                <div class="grid">
+                    <?php foreach ($products as $idx => $prod): ?>
+                        <?php
+                            $p_class = $panel_classes[$idx % count($panel_classes)];
+                            $symbol = $relic_symbols[$idx % count($relic_symbols)];
+                        ?>
+                        <article class="card-item">
+                            <a href="product-detail.php?slug=<?= urlencode($prod['slug']) ?>" class="frame">
+                                <div class="panel <?= $p_class ?>">
+                                    <div class="relic"><?= $symbol ?></div>
+                                    <?php if (!empty($prod['primary_image'])): ?>
+                                        <img src="<?= htmlspecialchars($prod['primary_image']) ?>" alt="<?= htmlspecialchars($prod['title']) ?>" loading="lazy" onerror="this.remove()">
                                     <?php endif; ?>
-
-                                    <?php if (!empty($item['era_origin'])): ?>
-                                        <p class="text-muted small mb-2"><strong>Era:</strong> <?= htmlspecialchars($item['era_origin']) ?></p>
-                                    <?php endif; ?>
-
-                                    <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
-                                        <span class="price-badge">$<?= number_format((float)$item['price'], 2) ?></span>
-                                        <a href="product-detail.php?slug=<?= urlencode($item['slug']) ?>" class="btn btn-sm btn-outline-dark">View Detail</a>
-                                    </div>
                                 </div>
+                            </a>
+                            <div class="meta">
+                                <small><?= htmlspecialchars($prod['category_name'] ?: 'Brass Relic') ?></small>
+                                <h3>
+                                    <a href="product-detail.php?slug=<?= urlencode($prod['slug']) ?>" class="text-dark text-decoration-none">
+                                        <?= htmlspecialchars($prod['title']) ?>
+                                    </a>
+                                </h3>
+                                <div class="row-meta">
+                                    <span class="price">₹<?= number_format((float)$prod['price'], 0) ?></span>
+                                    <span class="tag <?= $prod['stock_status'] === 'Available' ? 'one' : '' ?>">
+                                        <?= $prod['stock_status'] === 'Available' ? '1 left' : htmlspecialchars($prod['stock_status']) ?>
+                                    </span>
+                                </div>
+                                <a href="product-detail.php?slug=<?= urlencode($prod['slug']) ?>" class="add-btn text-decoration-none">Inspect &amp; Order</a>
                             </div>
-                        </div>
+                        </article>
                     <?php endforeach; ?>
                 </div>
 
-                <!-- Pagination UI -->
+                <!-- Pagination -->
                 <?php if ($total_pages > 1): ?>
-                    <nav aria-label="Catalog Pagination" class="mt-5">
-                        <ul class="pagination justify-content-center">
-                            <!-- Previous Page -->
+                    <nav class="mt-5 d-flex justify-content-center">
+                        <ul class="pagination">
                             <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
-                                <a class="page-link text-dark" href="<?= build_filter_url(['page' => $page - 1]) ?>">Previous</a>
+                                <a class="page-link text-dark" href="<?= build_filter_url(['page' => $page - 1]) ?>">Prev</a>
                             </li>
-
-                            <!-- Page Numbers -->
                             <?php for ($i = 1; $i <= $total_pages; $i++): ?>
                                 <li class="page-item <?= ($i === $page) ? 'active' : '' ?>">
-                                    <a class="page-link <?= ($i === $page) ? 'bg-dark border-dark text-white' : 'text-dark' ?>" href="<?= build_filter_url(['page' => $i]) ?>">
-                                        <?= $i ?>
-                                    </a>
+                                    <a class="page-link <?= ($i === $page) ? 'bg-dark border-dark text-white' : 'text-dark' ?>" href="<?= build_filter_url(['page' => $i]) ?>"><?= $i ?></a>
                                 </li>
                             <?php endfor; ?>
-
-                            <!-- Next Page -->
                             <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
                                 <a class="page-link text-dark" href="<?= build_filter_url(['page' => $page + 1]) ?>">Next</a>
                             </li>
