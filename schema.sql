@@ -67,11 +67,12 @@ CREATE TABLE products (
         ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 5. Product Media Table
+-- 5. Product Media Table (With Original Image & Downsized Thumbnail Path)
 CREATE TABLE product_media (
     media_id INT AUTO_INCREMENT PRIMARY KEY,
     product_id INT NOT NULL,
     image_path VARCHAR(255) NOT NULL,
+    thumbnail_path VARCHAR(255) DEFAULT NULL,
     is_primary TINYINT(1) NOT NULL DEFAULT 0,
     sort_order INT NOT NULL DEFAULT 0,
     CONSTRAINT fk_media_product FOREIGN KEY (product_id)

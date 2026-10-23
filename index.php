@@ -11,7 +11,8 @@ $featured_slides = [];
 if ($conn) {
     $feat_res = mysqli_query($conn, "
         SELECT p.*, c.category_name,
-               (SELECT image_path FROM product_media pm WHERE pm.product_id = p.product_id ORDER BY is_primary DESC, media_id ASC LIMIT 1) as primary_image
+               (SELECT COALESCE(NULLIF(pm.thumbnail_path, ''), pm.image_path) FROM product_media pm WHERE pm.product_id = p.product_id ORDER BY is_primary DESC, media_id ASC LIMIT 1) as display_image,
+               (SELECT image_path FROM product_media pm WHERE pm.product_id = p.product_id ORDER BY is_primary DESC, media_id ASC LIMIT 1) as full_image
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.category_id
         WHERE p.is_featured = 1 AND p.stock_status = 'Available'
@@ -40,12 +41,12 @@ if ($conn) {
     }
 }
 
-// Fetch 8 featured / new arrival products from DB
+// Fetch 8 featured / new arrival products from DB using lightweight thumbnails for fast grid loading
 $products = [];
 if ($conn) {
     $prod_res = mysqli_query($conn, "
         SELECT p.*, c.category_name,
-               (SELECT image_path FROM product_media pm WHERE pm.product_id = p.product_id ORDER BY is_primary DESC, media_id ASC LIMIT 1) as primary_image
+               (SELECT COALESCE(NULLIF(pm.thumbnail_path, ''), pm.image_path) FROM product_media pm WHERE pm.product_id = p.product_id ORDER BY is_primary DESC, media_id ASC LIMIT 1) as display_image
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.category_id
         ORDER BY p.created_at DESC
@@ -87,7 +88,7 @@ $panel_classes = ['', 'wine', 'pink'];
     <!-- Dynamic Featured Product Slides (Starting from 1 onwards) -->
     <?php if (!empty($featured_slides)): ?>
       <?php foreach ($featured_slides as $f_idx => $f_slide): ?>
-        <div class="slide s2" style="<?= !empty($f_slide['primary_image']) ? "background-image: linear-gradient(90deg, rgba(36,8,9,.92) 35%, rgba(36,8,9,.35)), url('" . htmlspecialchars($f_slide['primary_image']) . "');" : '' ?>" aria-label="Featured Slide <?= $f_idx + 1 ?>">
+        <div class="slide s2" style="<?= !empty($f_slide['display_image']) ? "background-image: linear-gradient(90deg, rgba(36,8,9,.92) 35%, rgba(36,8,9,.35)), url('" . htmlspecialchars($f_slide['display_image']) . "');" : '' ?>" aria-label="Featured Slide <?= $f_idx + 1 ?>">
           <div class="wrap">
             <div>
               <span class="badge bg-warning text-dark text-uppercase px-3 py-1 mb-2 fw-bold">⭐ Featured 1-of-1 Relic</span>
@@ -98,10 +99,10 @@ $panel_classes = ['', 'wine', 'pink'];
                 <a href="product-detail.php?slug=<?= urlencode($f_slide['slug']) ?>" class="btn-brass text-decoration-none">Acquire This Featured Piece</a>
               </div>
             </div>
-            <?php if (!empty($f_slide['primary_image'])): ?>
+            <?php if (!empty($f_slide['display_image'])): ?>
               <div class="frame d-none d-lg-block">
                 <div class="panel">
-                  <img src="<?= htmlspecialchars($f_slide['primary_image']) ?>" alt="<?= htmlspecialchars($f_slide['title']) ?>">
+                  <img src="<?= htmlspecialchars($f_slide['display_image']) ?>" alt="<?= htmlspecialchars($f_slide['title']) ?>">
                 </div>
               </div>
             <?php endif; ?>
@@ -207,8 +208,8 @@ $panel_classes = ['', 'wine', 'pink'];
           <article class="card-item">
             <a href="product-detail.php?slug=<?= urlencode($prod['slug']) ?>" class="frame">
               <div class="panel <?= $p_class ?>">
-                <?php if (!empty($prod['primary_image'])): ?>
-                  <img src="<?= htmlspecialchars($prod['primary_image']) ?>" alt="<?= htmlspecialchars($prod['title']) ?>" loading="lazy" onerror="this.remove()">
+                <?php if (!empty($prod['display_image'])): ?>
+                  <img src="<?= htmlspecialchars($prod['display_image']) ?>" alt="<?= htmlspecialchars($prod['title']) ?>" loading="lazy" onerror="this.remove()">
                 <?php endif; ?>
               </div>
             </a>

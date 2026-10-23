@@ -130,12 +130,12 @@ if ($conn) {
 
 $total_pages = ceil($total_products / $per_page);
 
-// Fetch Products for Current Page
+// Fetch Products for Current Page using lightweight thumbnail_path for fast rendering
 $products = [];
 if ($conn) {
     $query = "
         SELECT p.*, c.category_name, c.slug as category_slug, b.brand_name,
-               (SELECT image_path FROM product_media pm WHERE pm.product_id = p.product_id ORDER BY is_primary DESC, media_id ASC LIMIT 1) as primary_image
+               (SELECT COALESCE(NULLIF(pm.thumbnail_path, ''), pm.image_path) FROM product_media pm WHERE pm.product_id = p.product_id ORDER BY is_primary DESC, media_id ASC LIMIT 1) as display_image
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.category_id
         LEFT JOIN brands b ON p.brand_id = b.brand_id
@@ -271,8 +271,8 @@ $panel_classes = ['', 'wine', 'pink'];
                         <article class="card-item">
                             <a href="product-detail.php?slug=<?= urlencode($prod['slug']) ?>" class="frame">
                                 <div class="panel <?= $p_class ?>">
-                                    <?php if (!empty($prod['primary_image'])): ?>
-                                        <img src="<?= htmlspecialchars($prod['primary_image']) ?>" alt="<?= htmlspecialchars($prod['title']) ?>" loading="lazy" onerror="this.remove()">
+                                    <?php if (!empty($prod['display_image'])): ?>
+                                        <img src="<?= htmlspecialchars($prod['display_image']) ?>" alt="<?= htmlspecialchars($prod['title']) ?>" loading="lazy" onerror="this.remove()">
                                     <?php endif; ?>
                                 </div>
                             </a>

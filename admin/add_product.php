@@ -31,12 +31,94 @@ function create_slug($string) {
     return trim($slug, '-');
 }
 
+/**
+ * Creates a downsized lightweight thumbnail image using GD extension
+ * Max width / height: 600px
+ */
+function create_image_thumbnail($source_path, $target_thumb_path, $mime_type, $max_dim = 600) {
+    if (!extension_loaded('gd')) {
+        return false; // GD not available, fallback to original
+    }
+
+    list($orig_w, $orig_h) = @getimagesize($source_path);
+    if (!$orig_w || !$orig_h) {
+        return false;
+    }
+
+    // Calculate new dimensions maintaining aspect ratio
+    if ($orig_w > $max_dim || $orig_h > $max_dim) {
+        if ($orig_w >= $orig_h) {
+            $new_w = $max_dim;
+            $new_h = (int)round(($orig_h / $orig_w) * $max_dim);
+        } else {
+            $new_h = $max_dim;
+            $new_w = (int)round(($orig_w / $orig_h) * $max_dim);
+        }
+    } else {
+        $new_w = $orig_w;
+        $new_h = $orig_h;
+    }
+
+    switch ($mime_type) {
+        case 'image/jpeg':
+            $src_img = @imagecreatefromjpeg($source_path);
+            break;
+        case 'image/png':
+            $src_img = @imagecreatefrompng($source_path);
+            break;
+        case 'image/webp':
+            $src_img = @imagecreatefromwebp($source_path);
+            break;
+        default:
+            return false;
+    }
+
+    if (!$src_img) {
+        return false;
+    }
+
+    $thumb_img = imagecreatetruecolor($new_w, $new_h);
+
+    // Preserve transparency for PNG and WebP
+    if ($mime_type === 'image/png' || $mime_type === 'image/webp') {
+        imagealphablending($thumb_img, false);
+        imagesavealpha($thumb_img, true);
+        $transparent = imagecolorallocatealpha($thumb_img, 255, 255, 255, 127);
+        imagefilledrectangle($thumb_img, 0, 0, $new_w, $new_h, $transparent);
+    }
+
+    imagecopyresampled($thumb_img, $src_img, 0, 0, 0, 0, $new_w, $new_h, $orig_w, $orig_h);
+
+    // Save downsized image
+    $success = false;
+    switch ($mime_type) {
+        case 'image/jpeg':
+            $success = imagejpeg($thumb_img, $target_thumb_path, 82);
+            break;
+        case 'image/png':
+            $success = imagepng($thumb_img, $target_thumb_path, 6);
+            break;
+        case 'image/webp':
+            $success = imagewebp($thumb_img, $target_thumb_path, 80);
+            break;
+    }
+
+    imagedestroy($src_img);
+    imagedestroy($thumb_img);
+
+    return $success;
+}
+
 // Ensure upload directories exist
-$upload_img_dir = __DIR__ . '/../uploads/products/';
-$upload_vid_dir = __DIR__ . '/../uploads/videos/';
+$upload_img_dir   = __DIR__ . '/../uploads/products/';
+$upload_thumb_dir = __DIR__ . '/../uploads/products/thumbs/';
+$upload_vid_dir   = __DIR__ . '/../uploads/videos/';
 
 if (!file_exists($upload_img_dir)) {
     @mkdir($upload_img_dir, 0755, true);
+}
+if (!file_exists($upload_thumb_dir)) {
+    @mkdir($upload_thumb_dir, 0755, true);
 }
 if (!file_exists($upload_vid_dir)) {
     @mkdir($upload_vid_dir, 0755, true);
@@ -191,7 +273,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $product_id = mysqli_insert_id($conn);
                         mysqli_stmt_close($stmt);
 
-                        // Multi-Image Upload Handler
+                        // Multi-Image Upload & Downsized Thumbnail Handler
                         if (isset($_FILES['images']) && !empty($_FILES['images']['name'][0])) {
                             $allowed_img_exts = ['jpg', 'jpeg', 'png', 'webp'];
                             $allowed_img_mimes = ['image/jpeg', 'image/png', 'image/webp'];
@@ -210,16 +292,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     finfo_close($finfo);
 
                                     if (in_array($img_ext, $allowed_img_exts) && in_array($mime, $allowed_img_mimes)) {
-                                        $new_img_name = 'prod_' . $product_id . '_' . uniqid() . '_' . $i . '.' . $img_ext;
-                                        $target_img_file = $upload_img_dir . $new_img_name;
+                                        $uniq_id_str = uniqid();
+                                        $new_img_name   = 'prod_' . $product_id . '_' . $uniq_id_str . '_' . $i . '.' . $img_ext;
+                                        $new_thumb_name = 'thumb_' . $product_id . '_' . $uniq_id_str . '_' . $i . '.' . $img_ext;
+
+                                        $target_img_file   = $upload_img_dir . $new_img_name;
+                                        $target_thumb_file = $upload_thumb_dir . $new_thumb_name;
 
                                         if (move_uploaded_file($img_tmp, $target_img_file)) {
-                                            $db_img_path = 'uploads/products/' . $new_img_name;
+                                            $db_img_path   = 'uploads/products/' . $new_img_name;
+                                            $db_thumb_path = 'uploads/products/thumbs/' . $new_thumb_name;
+
+                                            // Generate downsized lightweight thumbnail (600px max)
+                                            $thumb_created = create_image_thumbnail($target_img_file, $target_thumb_file, $mime, 600);
+                                            if (!$thumb_created) {
+                                                // Fallback to original image path if thumbnail creation fails
+                                                $db_thumb_path = $db_img_path;
+                                            }
+
                                             $sort_order = $i;
 
-                                            $img_stmt = mysqli_prepare($conn, "INSERT INTO product_media (product_id, image_path, is_primary, sort_order) VALUES (?, ?, ?, ?)");
+                                            $img_stmt = mysqli_prepare($conn, "INSERT INTO product_media (product_id, image_path, thumbnail_path, is_primary, sort_order) VALUES (?, ?, ?, ?, ?)");
                                             if ($img_stmt) {
-                                                mysqli_stmt_bind_param($img_stmt, "isii", $product_id, $db_img_path, $is_primary, $sort_order);
+                                                mysqli_stmt_bind_param($img_stmt, "issii", $product_id, $db_img_path, $db_thumb_path, $is_primary, $sort_order);
                                                 mysqli_stmt_execute($img_stmt);
                                                 mysqli_stmt_close($img_stmt);
                                             }
@@ -356,7 +451,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="col-md-6">
                 <label for="images" class="form-label fw-bold small">Multi-Image Gallery Upload</label>
                 <input type="file" class="form-control" id="images" name="images[]" multiple accept=".jpg,.jpeg,.png,.webp">
-                <div class="form-text small">Max file size limit per upload: <strong><?= htmlspecialchars($max_upload_size_str) ?></strong>. First image is primary.</div>
+                <div class="form-text small">Max file size limit per upload: <strong><?= htmlspecialchars($max_upload_size_str) ?></strong>. Downsized thumbnails will automatically be generated for fast index/catalog performance.</div>
             </div>
 
             <div class="col-md-6">
